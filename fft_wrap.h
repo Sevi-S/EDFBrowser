@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2018 - 2019 Teunis van Beelen
+* Copyright (C) 2018 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -39,14 +38,19 @@
 
 #include "third_party/kiss_fft/kiss_fftr.h"
 
-#define FFT_WNDW_TYPE_RECT                    0
-#define FFT_WNDW_TYPE_HAMMING                 1
-#define FFT_WNDW_TYPE_4TERM_BLACKMANHARRIS    2
-#define FFT_WNDW_TYPE_7TERM_BLACKMANHARRIS    3
-#define FFT_WNDW_TYPE_NUTTALL3B               4
-#define FFT_WNDW_TYPE_NUTTALL4C               5
-#define FFT_WNDW_TYPE_HANN                    6
-#define FFT_WNDW_TYPE_HFT223D                 7
+#define FFT_WNDW_TYPE_RECT                    (0)
+#define FFT_WNDW_TYPE_HAMMING                 (1)
+#define FFT_WNDW_TYPE_4TERM_BLACKMANHARRIS    (2)
+#define FFT_WNDW_TYPE_7TERM_BLACKMANHARRIS    (3)
+#define FFT_WNDW_TYPE_NUTTALL3B               (4)
+#define FFT_WNDW_TYPE_NUTTALL4C               (5)
+#define FFT_WNDW_TYPE_HANN                    (6)
+#define FFT_WNDW_TYPE_HFT223D                 (7)
+#define FFT_WNDW_TYPE_HFT95                   (8)
+#define FFT_WNDW_TYPE_KAISER_A2               (9)
+#define FFT_WNDW_TYPE_KAISER_A3              (10)
+#define FFT_WNDW_TYPE_KAISER_A4              (11)
+#define FFT_WNDW_TYPE_KAISER_A5              (12)
 
 
 #ifdef __cplusplus

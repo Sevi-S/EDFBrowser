@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2010 - 2019 Teunis van Beelen
+* Copyright (C) 2010 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -212,10 +211,10 @@ int BDF_triggers::get_triggers(struct edfhdrblock *hdr)
       {
         if(!status[16])  // rising edge detected
         {
-          annotation.file_num = hdr->file_num;
+          annotation.edfhdr = hdr;
           annotation.onset = (records_read * TIME_DIMENSION) + ((long long)(i / 3) * status_sample_duration);
           annotation.onset += hdr->starttime_offset;
-          strlcpy(annotation.annotation, "new epoch", MAX_ANNOTATION_LEN_II + 1);
+          strlcpy(annotation.description, "new epoch", MAX_ANNOTATION_LEN_II + 1);
           annotation.ident = (1 << ANNOT_ID_BS_TRIGGER);
           if(edfplus_annotation_add_item(annot_list, annotation))
           {
@@ -247,7 +246,7 @@ int BDF_triggers::get_triggers(struct edfhdrblock *hdr)
           {
             annotation.onset = (records_read * TIME_DIMENSION) + ((long long)(i / 3) * status_sample_duration);
             annotation.onset += hdr->starttime_offset;
-            snprintf(annotation.annotation, MAX_ANNOTATION_LEN_II + 1, "Trigger Input %i", j + 1);
+            snprintf(annotation.description, MAX_ANNOTATION_LEN_II + 1, "Trigger Input %i", j + 1);
             annotation.ident = (1 << ANNOT_ID_BS_TRIGGER);
             if(edfplus_annotation_add_item(annot_list, annotation))
             {

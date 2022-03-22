@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2010 - 2019 Teunis van Beelen
+* Copyright (C) 2010 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -1031,7 +1030,14 @@ void SignalCurve::drawWidget_to_printer(QPainter *painter, int curve_w, int curv
         continue;
       }
 
-      q_str.setNum((double)i / (double)p2_multiplier, 'f', precision);
+      if((precision == 0) && (max_value > 1000.0))
+      {
+        q_str.setNum((double)i / (double)p2_multiplier, 'e', precision);
+      }
+      else
+      {
+        q_str.setNum((double)i / (double)p2_multiplier, 'f', precision);
+      }
 
       p2_tmp = (double)(i - p2_ruler_startvalue) * p2_pixels_per_unit;
 
@@ -1594,7 +1600,14 @@ void SignalCurve::drawWidget(QPainter *painter, int curve_w, int curve_h)
         continue;
       }
 
-      q_str.setNum((double)lk / (double)p2_multiplier, 'f', precision);
+      if((precision == 0) && (max_value > 1000.0))
+      {
+        q_str.setNum((double)lk / (double)p2_multiplier, 'e', precision);
+      }
+      else
+      {
+        q_str.setNum((double)lk / (double)p2_multiplier, 'f', precision);
+      }
 
       p2_tmp = (double)(lk - p2_ruler_startvalue) * p2_pixels_per_unit;
 

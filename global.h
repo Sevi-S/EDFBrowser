@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2007 - 2019 Teunis van Beelen
+* Copyright (C) 2007 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -45,7 +44,7 @@
 
 #include <stdio.h>
 
-#if defined(__APPLE__) || defined(__MACH__) || defined(__APPLE_CC__)
+#if defined(__APPLE__) || defined(__MACH__) || defined(__APPLE_CC__) || defined(__HAIKU__)
 
 #define fopeno fopen
 
@@ -57,46 +56,50 @@
 
 #endif
 
-#define PROGRAM_NAME "EDFbrowser"
-#define PROGRAM_VERSION "1.71"
-#define PROGRAM_BETA_SUFFIX ""
-#define MINIMUM_QT4_VERSION 0x040701
-#define MINIMUM_QT5_VERSION 0x050901
-#define MAXFILES 32
-#define MAXSIGNALS 640
-#define MAXFILTERS 16
-#define TIME_DIMENSION (10000000LL)
-#define MAX_ANNOTATION_LEN 512
-#define VIEWTIME_SYNCED_OFFSET 0
-#define VIEWTIME_SYNCED_ABSOLUT 1
-#define VIEWTIME_UNSYNCED 2
-#define VIEWTIME_USER_DEF_SYNCED 3
-#define MAX_PATH_LENGTH 1024
-#define MAX_RECENTFILES 32
-#define MAX_ACTIVE_ANNOT_MARKERS 64
-#define MAXSPECTRUMDIALOGS 32
-#define MAXSPECTRUMDOCKS 8
-#define MAXPREDEFINEDMONTAGES 12
-#define MAXAVERAGECURVEDIALOGS 32
-#define MAXZSCOREDIALOGS 32
-#define MAXZOOMHISTORY 16
+#define PROGRAM_NAME                "EDFbrowser"
+#define PROGRAM_VERSION                   "1.77"
+#define PROGRAM_BETA_SUFFIX                   ""
+#define MINIMUM_QT4_VERSION             0x040701
+#define MINIMUM_QT5_VERSION             0x050901
+#define MAXFILES                            (32)
+#define MAXSIGNALS                         (640)
+#define MAXFILTERS                          (16)
+#define TIME_DIMENSION                (10000000LL)
+#define MAX_ANNOTATION_LEN                 (512)
+#define MAX_UNIQUE_ANNOTATIONS              (64)
+#define VIEWTIME_SYNCED_OFFSET               (0)
+#define VIEWTIME_SYNCED_ABSOLUT              (1)
+#define VIEWTIME_UNSYNCED                    (2)
+#define VIEWTIME_USER_DEF_SYNCED             (3)
+#define MAX_PATH_LENGTH                   (1024)
+#define MAX_RECENTFILES                     (32)
+#define MAX_ACTIVE_ANNOT_MARKERS            (64)
+#define MAXSPECTRUMDIALOGS                  (32)
+#define MAXSPECTRUMDOCKS                     (8)
+#define MAXCDSADOCKS                        (64)
+#define MAXHYPNOGRAMDOCKS                   (64)
+#define MAXHRVDOCKS                         (64)
+#define MAXPREDEFINEDMONTAGES               (12)
+#define MAXAVERAGECURVEDIALOGS              (32)
+#define MAXZSCOREDIALOGS                    (32)
+#define MAXZOOMHISTORY                      (16)
 /* 200 bpm x 60 min. x 24 hours x 2 days */
-#define STATISTICS_IVAL_LIST_SZ   576000
+#define STATISTICS_IVAL_LIST_SZ         (576000)
 
 
-#define ANNOT_ID_NK_TRIGGER   0
-#define ANNOT_ID_BS_TRIGGER   1
+#define ANNOT_ID_NK_TRIGGER       (0)
+#define ANNOT_ID_BS_TRIGGER       (1)
 
-#define VIDEO_STATUS_STOPPED      0
-#define VIDEO_STATUS_STARTUP_1    1
-#define VIDEO_STATUS_STARTUP_2    2
-#define VIDEO_STATUS_STARTUP_3    3
-#define VIDEO_STATUS_STARTUP_4    4
-#define VIDEO_STATUS_STARTUP_5    5
-#define VIDEO_STATUS_STARTUP_6    6
-#define VIDEO_STATUS_PLAYING     16
-#define VIDEO_STATUS_PAUSED      17
-#define VIDEO_STATUS_ENDED       18
+#define VIDEO_STATUS_STOPPED      (0)
+#define VIDEO_STATUS_STARTUP_1    (1)
+#define VIDEO_STATUS_STARTUP_2    (2)
+#define VIDEO_STATUS_STARTUP_3    (3)
+#define VIDEO_STATUS_STARTUP_4    (4)
+#define VIDEO_STATUS_STARTUP_5    (5)
+#define VIDEO_STATUS_STARTUP_6    (6)
+#define VIDEO_STATUS_PLAYING     (16)
+#define VIDEO_STATUS_PAUSED      (17)
+#define VIDEO_STATUS_ENDED       (18)
 
 #include "filter.h"
 #include "third_party/fidlib/fidlib.h"
@@ -131,7 +134,6 @@ struct edfparamblock{
 
 struct edfhdrblock{
         FILE      *file_hdl;
-        int       file_num;
         char      version[32];
         char      filename[MAX_PATH_LENGTH];
         char      patient[81];
@@ -170,12 +172,15 @@ struct edfhdrblock{
         long long prefiltertime;
         int       annots_not_read;
         int       recording_len_sec;
-        struct edfparamblock *edfparam;
-        struct annotation_list annot_list;
+        struct    edfparamblock *edfparam;
+        struct    annotation_list annot_list;
+        char      unique_annotations_list[MAX_UNIQUE_ANNOTATIONS][MAX_ANNOTATION_LEN];
+        int       hypnogram_dock[MAXHYPNOGRAMDOCKS];
+        int       hrv_dock[MAXHRVDOCKS];
       };
 
 struct signalcompblock{
-        int filenum;
+        unsigned long long uid;
         struct edfhdrblock *edfhdr;
         int num_of_signals;
         unsigned long long viewbufsize;
@@ -191,7 +196,7 @@ struct signalcompblock{
         double sample_timeoffset_part;
         double sample_pixel_ratio;
         int edfsignal[MAXSIGNALS];
-        int factor[MAXSIGNALS];
+        double factor[MAXSIGNALS];
         int polarity;
         double sensitivity[MAXSIGNALS];
         int oldvalue;
@@ -255,6 +260,7 @@ struct signalcompblock{
         struct zratio_filter_settings *zratio_filter;
         double zratio_crossoverfreq;
         int spectr_dialog[MAXSPECTRUMDIALOGS];
+        int cdsa_dock[MAXCDSADOCKS];
         int avg_dialog[MAXAVERAGECURVEDIALOGS];
         int zscoredialog[MAXZSCOREDIALOGS];
       };
@@ -271,7 +277,7 @@ struct zoomhistoryblock{
        };
 
 struct active_markersblock{
-        int file_num;
+        struct edfhdrblock *edf_hdr;
         struct annotationblock *list[MAX_ACTIVE_ANNOT_MARKERS];
         int count;
         int selected;
@@ -290,7 +296,7 @@ struct graphicBufStruct{
 
 struct crossHairStruct{
         int color;
-        int file_num;
+        struct edfhdrblock *edf_hdr;
         int active;
         int moving;
         int position;

@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2010 - 2019 Teunis van Beelen
+* Copyright (C) 2010 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -432,7 +431,7 @@ void UI_ExportAnnotationswindow::ExportButtonClicked()
       {
         break;
       }
-      strncpy(str, annot->annotation, 1024);
+      strncpy(str, annot->description, 1024);
       str[1023] = 0;
       utf8_to_latin1(str);
 
@@ -621,7 +620,7 @@ void UI_ExportAnnotationswindow::ExportButtonClicked()
                               "  <description>",
                               tm.year, tm.month, tm.day, tm.hour, tm.minute, tm.second, temp, annot->duration);
 
-      xml_fwrite_encode_entity(annotationfile, annot->annotation);
+      xml_fwrite_encode_entity(annotationfile, annot->description);
 
       fprintf(annotationfile,                     "</description>\n"
                               " </annotation>\n");
@@ -730,7 +729,7 @@ void UI_ExportAnnotationswindow::ExportButtonClicked()
 
       if(annot->duration[0] == 0)
       {
-        edfwrite_annotation_utf8(hdl, annot->onset / 1000LL, -1LL, annot->annotation);
+        edfwrite_annotation_utf8(hdl, annot->onset / 1000LL, -1LL, annot->description);
       }
       else
       {
@@ -776,7 +775,7 @@ void UI_ExportAnnotationswindow::ExportButtonClicked()
           strlcat(str, "0000", 1024);
         }
 
-        edfwrite_annotation_utf8(hdl, annot->onset / 1000LL, atoi(str), annot->annotation);
+        edfwrite_annotation_utf8(hdl, annot->onset / 1000LL, atoi(str), annot->description);
       }
     }
 

@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2017 - 2019 Teunis van Beelen
+* Copyright (C) 2017 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -489,7 +488,7 @@ void UI_ExportFilteredSignalsWindow::StartExport()
 
   for(i=0, new_edfsignals=0; i<mainwindow->signalcomps; i++)
   {
-    if(mainwindow->signalcomp[i]->filenum != file_num)  continue;
+    if(mainwindow->signalcomp[i]->edfhdr != edfhdr)  continue;
 
     signalcomp[new_edfsignals] = mainwindow->signalcomp[i];
 
@@ -1164,7 +1163,7 @@ void UI_ExportFilteredSignalsWindow::StartExport()
           fputc(20, outputfile);
           tallen++;
 
-          tallen += fprintf(outputfile, "%s", annot_ptr->annotation);
+          tallen += fprintf(outputfile, "%s", annot_ptr->description);
 
           fputc(20, outputfile);
           fputc(0, outputfile);
@@ -1235,7 +1234,8 @@ void UI_ExportFilteredSignalsWindow::populate_tree_view()
       order,
       n_taps;
 
-  char txtbuf[2048];
+  char txtbuf[2048]="",
+       str[64]="";
 
   double frequency,
          frequency2,
@@ -1252,7 +1252,7 @@ void UI_ExportFilteredSignalsWindow::populate_tree_view()
 
   for(i=0; i<mainwindow->signalcomps; i++)
   {
-    if(mainwindow->signalcomp[i]->filenum != file_num)  continue;
+    if(mainwindow->signalcomp[i]->edfhdr != edfhdr)  continue;
 
     txtbuf[0] = 0;
 
@@ -1265,8 +1265,12 @@ void UI_ExportFilteredSignalsWindow::populate_tree_view()
 
     for(j=0; j<mainwindow->signalcomp[i]->num_of_signals; j++)
     {
-      snprintf(txtbuf + strlen(txtbuf), 2048 - strlen(txtbuf), "%+ix %s",
-              mainwindow->signalcomp[i]->factor[j],
+      snprintf(str, 64, "%+f", mainwindow->signalcomp[i]->factor[j]);
+
+      remove_trailing_zeros(str);
+
+      snprintf(txtbuf + strlen(txtbuf), 2048 - strlen(txtbuf), "%sx %s",
+              str,
               mainwindow->signalcomp[i]->edfhdr->edfparam[mainwindow->signalcomp[i]->edfsignal[j]].label);
 
       remove_trailing_spaces(txtbuf);

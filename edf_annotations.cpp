@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2007 - 2019 Teunis van Beelen
+* Copyright (C) 2007 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -426,14 +425,14 @@ int EDF_annotations::get_annotations(struct edfhdrblock *edf_hdr, int read_nk_tr
               if(n >= 0)
               {
                 memset(&annotblock, 0, sizeof(annotationblock));
-                annotblock.file_num = edf_hdr->file_num;
+                annotblock.edfhdr = edf_hdr;
                 annotblock.onset = get_long_time(time_in_txt);
                 for(j=0; j<n; j++)
                 {
                   if(j==MAX_ANNOTATION_LEN)  break;
-                  annotblock.annotation[j] = scratchpad[j];
+                  annotblock.description[j] = scratchpad[j];
                 }
-                annotblock.annotation[j] = 0;
+                annotblock.description[j] = 0;
 
                 if(duration)
                 {
@@ -545,10 +544,10 @@ int EDF_annotations::get_annotations(struct edfhdrblock *edf_hdr, int read_nk_tr
               nk_triggers_cnt++;
 
               memset(&annotblock, 0, sizeof(annotationblock));
-              annotblock.file_num = edf_hdr->file_num;
+              annotblock.edfhdr = edf_hdr;
               annotblock.onset = ((long long)i * data_record_duration) + ((long long)k * nk_trigger_sample_duration);
               annotblock.onset += edf_hdr->starttime_offset;
-              strlcpy(annotblock.annotation, nk_triggerlabel[j], MAX_ANNOTATION_LEN_II + 1);
+              strlcpy(annotblock.description, nk_triggerlabel[j], MAX_ANNOTATION_LEN_II + 1);
               annotblock.ident = (1 << ANNOT_ID_NK_TRIGGER);
 
               if(edfplus_annotation_add_item(&edf_hdr->annot_list, annotblock))

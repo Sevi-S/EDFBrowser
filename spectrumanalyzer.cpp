@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2010 - 2019 Teunis van Beelen
+* Copyright (C) 2010 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -145,7 +144,7 @@ UI_FreqSpectrumWindow::UI_FreqSpectrumWindow(struct signalcompblock *signal_comp
 
   SpectrumDialog = new QDialog();
   SpectrumDialog->setAttribute(Qt::WA_DeleteOnClose, true);
-  SpectrumDialog->setMinimumSize(650, 565);
+  SpectrumDialog->setMinimumSize(750, 565);
   SpectrumDialog->setSizeGripEnabled(true);
   SpectrumDialog->setModal(false);
   SpectrumDialog->setWindowFlags(Qt::Window | Qt::WindowMinMaxButtonsHint | Qt::WindowCloseButtonHint);
@@ -289,6 +288,7 @@ UI_FreqSpectrumWindow::UI_FreqSpectrumWindow(struct signalcompblock *signal_comp
   dftsz_box->addItem("Blocksize: 5000000");
   dftsz_box->addItem("Blocksize: 8388608");
   dftsz_box->addItem("Blocksize: 10000000");
+  dftsz_box->setCurrentIndex(mainwindow->spectrum_blocksize_predefined);
 
   windowBox = new QComboBox;
   windowBox->setMinimumSize(70, 25);
@@ -300,15 +300,39 @@ UI_FreqSpectrumWindow::UI_FreqSpectrumWindow(struct signalcompblock *signal_comp
   windowBox->addItem("Nuttall4c");
   windowBox->addItem("Hann");
   windowBox->addItem("HFT223D");
+  windowBox->addItem("HFT95");
+  windowBox->addItem("Kaiser2");
+  windowBox->addItem("Kaiser3");
+  windowBox->addItem("Kaiser4");
+  windowBox->addItem("Kaiser5");
   windowBox->setCurrentIndex(window_type);
   windowBox->setToolTip("Window");
+  windowBox->setCurrentIndex(mainwindow->spectrum_window);
+
+  window_type = mainwindow->spectrum_window;
 
   dftsz_spinbox = new QSpinBox;
   dftsz_spinbox->setMinimumSize(70, 25);
   dftsz_spinbox->setMinimum(10);
-  dftsz_spinbox->setMaximum(1000);
   dftsz_spinbox->setSingleStep(2);
-  dftsz_spinbox->setValue(dftblocksize);
+  if(mainwindow->spectrum_blocksize_predefined)
+  {
+    dftsz_spinbox->setMaximum(10000000);
+
+    dftsz_spinbox->setValue(dftsz_range[mainwindow->spectrum_blocksize_predefined]);
+
+    dftblocksize = dftsz_range[mainwindow->spectrum_blocksize_predefined];
+
+    dftsz_spinbox->setEnabled(false);
+  }
+  else
+  {
+    dftsz_spinbox->setMaximum(1000);
+
+    dftsz_spinbox->setValue(mainwindow->spectrum_blocksize_userdefined);
+
+    dftblocksize = mainwindow->spectrum_blocksize_userdefined;
+  }
 
   overlap_box = new QComboBox;
   overlap_box->setMinimumSize(70, 25);
@@ -317,6 +341,9 @@ UI_FreqSpectrumWindow::UI_FreqSpectrumWindow(struct signalcompblock *signal_comp
   overlap_box->addItem("Overlap: 67%");
   overlap_box->addItem("Overlap: 75%");
   overlap_box->addItem("Overlap: 80%");
+  overlap_box->setCurrentIndex(mainwindow->spectrum_overlap);
+
+  overlap = mainwindow->spectrum_overlap + 1;
 
   vlayout3 = new QVBoxLayout;
   vlayout3->addStretch(100);
@@ -348,7 +375,7 @@ UI_FreqSpectrumWindow::UI_FreqSpectrumWindow(struct signalcompblock *signal_comp
   spanSlider->setMinimum(1);
   spanSlider->setMaximum(1000);
   spanSlider->setValue(1000);
-  spanSlider->setMinimumSize(500, 15);
+  spanSlider->setMinimumSize(600, 15);
 
   spanLabel = new QLabel;
   spanLabel->setText("Span");
@@ -360,7 +387,7 @@ UI_FreqSpectrumWindow::UI_FreqSpectrumWindow(struct signalcompblock *signal_comp
   centerSlider->setMinimum(0);
   centerSlider->setMaximum(1000);
   centerSlider->setValue(0);
-  centerSlider->setMinimumSize(500, 15);
+  centerSlider->setMinimumSize(600, 15);
 
   centerLabel = new QLabel;
   centerLabel->setText("Center");
@@ -428,6 +455,8 @@ void UI_FreqSpectrumWindow::windowBox_changed(int idx)
 
   if(window_type == idx)  return;
 
+  mainwindow->spectrum_window = idx;
+
   window_type = idx;
 
   busy = 1;
@@ -464,6 +493,8 @@ void UI_FreqSpectrumWindow::dftsz_value_changed(int new_val)
 
 void UI_FreqSpectrumWindow::dftsz_box_changed(int idx)
 {
+  mainwindow->spectrum_blocksize_predefined = idx;
+
   if(idx)
   {
     if(dftsz_range[idx] > samples)
@@ -502,6 +533,8 @@ void UI_FreqSpectrumWindow::overlap_box_changed(int idx)
   if(busy)  return;
 
   if(overlap == (idx + 1))  return;
+
+  mainwindow->spectrum_overlap = idx;
 
   overlap = idx + 1;
 
@@ -599,6 +632,16 @@ void UI_FreqSpectrumWindow::print_to_txt()
     case FFT_WNDW_TYPE_HANN                  : fprintf(outputfile, "FFT window function: Hann\n");
             break;
     case FFT_WNDW_TYPE_HFT223D               : fprintf(outputfile, "FFT window function: HFT223D\n");
+            break;
+    case FFT_WNDW_TYPE_HFT95                 : fprintf(outputfile, "FFT window function: HFT95\n");
+            break;
+    case FFT_WNDW_TYPE_KAISER_A2             : fprintf(outputfile, "FFT window function: Kaiser2\n");
+            break;
+    case FFT_WNDW_TYPE_KAISER_A3             : fprintf(outputfile, "FFT window function: Kaiser3\n");
+            break;
+    case FFT_WNDW_TYPE_KAISER_A4             : fprintf(outputfile, "FFT window function: Kaiser4\n");
+            break;
+    case FFT_WNDW_TYPE_KAISER_A5             : fprintf(outputfile, "FFT window function: Kaiser5\n");
             break;
   }
   switch(overlap)
@@ -919,7 +962,7 @@ void UI_FreqSpectrumWindow::run()
       {
         if(s==signalcomp->sample_start)
         {
-          if(mainwindow->edfheaderlist[signalcomp->filenum]->viewtime<=0)
+          if(signalcomp->edfhdr->viewtime<=0)
           {
             plif_reset_subtract_filter(signalcomp->plif_ecg_filter, 0);
           }

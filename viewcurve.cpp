@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2007 - 2019 Teunis van Beelen
+* Copyright (C) 2007 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -98,6 +97,11 @@ ViewCurve::ViewCurve(QWidget *w_parent) : QWidget(w_parent)
   annot_duration_color.setBlue(127);
   annot_duration_color.setAlpha(32);
 
+  annot_duration_color_selected.setRed(127);
+  annot_duration_color_selected.setGreen(0);
+  annot_duration_color_selected.setBlue(127);
+  annot_duration_color_selected.setAlpha(32);
+
   signal_color = 12;
 
   floating_ruler_color = 10;
@@ -110,6 +114,7 @@ ViewCurve::ViewCurve(QWidget *w_parent) : QWidget(w_parent)
 
 /////////////////////////////////////////////////////////
 
+  signal_nr = 0;
   crosshair_1.active = 0;
   crosshair_2.active = 0;
   ruler_active = 0;
@@ -143,6 +148,13 @@ ViewCurve::ViewCurve(QWidget *w_parent) : QWidget(w_parent)
   blackwhite_printing = 1;
   floating_ruler_value = 0;
   linear_interpol = 0;
+
+  shift_page_left_shortcut = NULL;
+  shift_page_right_shortcut = NULL;
+  shift_page_up_shortcut = NULL;
+  shift_page_down_shortcut = NULL;
+
+  arrowkeys_shortcuts_global_set_enabled(true);
 }
 
 
@@ -181,6 +193,54 @@ ViewCurve::~ViewCurve()
   {
     delete thr[i];
   }
+}
+
+
+void ViewCurve::arrowkeys_shortcuts_global_set_enabled(bool enabled)
+{
+  if(shift_page_left_shortcut != NULL)
+  {
+    QObject::disconnect(shift_page_left_shortcut, 0, 0, 0);
+    delete shift_page_left_shortcut;
+  }
+
+  if(shift_page_right_shortcut != NULL)
+  {
+    QObject::disconnect(shift_page_right_shortcut, 0, 0, 0);
+    delete shift_page_right_shortcut;
+  }
+
+  if(shift_page_up_shortcut != NULL)
+  {
+    QObject::disconnect(shift_page_up_shortcut, 0, 0, 0);
+    delete shift_page_up_shortcut;
+  }
+
+  if(shift_page_down_shortcut != NULL)
+  {
+    QObject::disconnect(shift_page_down_shortcut, 0, 0, 0);
+    delete shift_page_down_shortcut;
+  }
+
+  if(enabled == true)
+  {
+    shift_page_left_shortcut = new QShortcut(QKeySequence::MoveToPreviousChar, mainwindow);
+    shift_page_right_shortcut = new QShortcut(QKeySequence::MoveToNextChar, mainwindow);
+    shift_page_up_shortcut = new QShortcut(QKeySequence::MoveToPreviousLine, mainwindow);
+    shift_page_down_shortcut = new QShortcut(QKeySequence::MoveToNextLine, mainwindow);
+  }
+  else
+  {
+    shift_page_left_shortcut = new QShortcut(QKeySequence::MoveToPreviousChar, this, 0, 0, Qt::WidgetShortcut);
+    shift_page_right_shortcut = new QShortcut(QKeySequence::MoveToNextChar, this, 0, 0, Qt::WidgetShortcut);
+    shift_page_up_shortcut = new QShortcut(QKeySequence::MoveToPreviousLine, this, 0, 0, Qt::WidgetShortcut);
+    shift_page_down_shortcut = new QShortcut(QKeySequence::MoveToNextLine, this, 0, 0, Qt::WidgetShortcut);
+  }
+
+  QObject::connect(shift_page_left_shortcut,  SIGNAL(activated()), mainwindow, SLOT(shift_page_left()));
+  QObject::connect(shift_page_right_shortcut, SIGNAL(activated()), mainwindow, SLOT(shift_page_right()));
+  QObject::connect(shift_page_up_shortcut,    SIGNAL(activated()), mainwindow, SLOT(shift_page_up()));
+  QObject::connect(shift_page_down_shortcut,  SIGNAL(activated()), mainwindow, SLOT(shift_page_down()));
 }
 
 
@@ -321,7 +381,7 @@ void ViewCurve::wheelEvent(QWheelEvent *wheel_event)
         if(l_tmp > (TIME_DIMENSION - trshld))
         {
           mainwindow->edfheaderlist[mainwindow->sel_viewtime]->viewtime += (TIME_DIMENSION - l_tmp);
-        }//synqstuff stolen from here
+        }
       }
 
       if(mainwindow->timescale_doubler == 10)
@@ -633,36 +693,48 @@ void ViewCurve::mouseReleaseEvent(QMouseEvent *release_event)
   {
     if(crosshair_1.moving)
     {
-      mainwindow->annotationEditDock->annotEditSetOnset(crosshair_1.time_relative);
+      if(mainwindow->annotationEditDock != NULL)
+      {
+        mainwindow->annotationEditDock->annotEditSetOnset(crosshair_1.time_relative);
+      }
 
       if(crosshair_2.active)
       {
-        mainwindow->annotationEditDock->annotEditSetDuration(crosshair_2.time_relative - mainwindow->annotationEditDock->annotEditGetOnset());
+        if(mainwindow->annotationEditDock != NULL)
+        {
+          mainwindow->annotationEditDock->annotEditSetDuration(crosshair_2.time_relative - mainwindow->annotationEditDock->annotEditGetOnset());
+        }
       }
     }
 
     if(crosshair_2.moving)
     {
+      if(mainwindow->annotationEditDock != NULL)
+      {
           // Don't update the onset time when changing file position
 //      mainwindow->annotationEditDock->annotEditSetDuration(crosshair_2.time_relative - crosshair_1.time_relative);
-      mainwindow->annotationEditDock->annotEditSetDuration(crosshair_2.time_relative - mainwindow->annotationEditDock->annotEditGetOnset());
+        mainwindow->annotationEditDock->annotEditSetDuration(crosshair_2.time_relative - mainwindow->annotationEditDock->annotEditGetOnset());
+      }
     }
 
-    if(annot_marker_moving)
+    if((annot_marker_moving) && (active_markers->edf_hdr != NULL))
     {
       active_markers->list[active_markers->selected]->x_pos = m_x;
 
       active_markers->list[active_markers->selected]->onset = ((long long)((((double)m_x) / w) * mainwindow->pagetime))
-                                                               + mainwindow->edfheaderlist[active_markers->file_num]->viewtime
-                                                               + mainwindow->edfheaderlist[active_markers->file_num]->starttime_offset;
+                                                               + active_markers->edf_hdr->viewtime
+                                                               + active_markers->edf_hdr->starttime_offset;
 
       active_markers->list[active_markers->selected]->modified = 1;
 
       active_markers->list[active_markers->selected]->selected = 1;
 
-      mainwindow->annotationEditDock->set_selected_annotation(active_markers->list[active_markers->selected]);
+      if(mainwindow->annotationEditDock != NULL)
+      {
+        mainwindow->annotationEditDock->set_selected_annotation(active_markers->list[active_markers->selected]);
+      }
 
-      mainwindow->annotations_dock[active_markers->file_num]->updateList();
+      mainwindow->annotations_dock[mainwindow->get_filenum(active_markers->edf_hdr)]->updateList();
 
       mainwindow->annotations_edited = 1;
 
@@ -888,13 +960,13 @@ void ViewCurve::mouseMoveEvent(QMouseEvent *move_event)
       }
     }
 
-    if(annot_marker_moving)
+    if((annot_marker_moving) && (active_markers->edf_hdr != NULL))
     {
       active_markers->list[active_markers->selected]->x_pos = mouse_x;
 
       active_markers->list[active_markers->selected]->onset = ((long long)((((double)mouse_x) / w) * mainwindow->pagetime))
-                                                               + mainwindow->edfheaderlist[active_markers->file_num]->viewtime
-                                                               + mainwindow->edfheaderlist[active_markers->file_num]->starttime_offset;
+                                                               + active_markers->edf_hdr->viewtime
+                                                               + active_markers->edf_hdr->starttime_offset;
     }
 
     delta_y = mouse_y - mouse_press_coordinate_y;
@@ -1555,13 +1627,27 @@ void ViewCurve::drawCurve_stage_2(QPainter *painter, int w_width, int w_height, 
 
             if((marker_x < w) && (marker_x2 > 0))
             {
-              if(mainwindow->annotations_duration_background_type == 0)
+              if(annot->selected_in_dock)
               {
-                painter->fillRect(marker_x, 0, marker_x2, h, annot_duration_color);
+                if(mainwindow->annotations_duration_background_type == 0)
+                {
+                  painter->fillRect(marker_x, 0, marker_x2, h, annot_duration_color_selected);
+                }
+                else
+                {
+                  painter->fillRect(marker_x, h - 92 + ((j % 3) * 30), marker_x2, 32, annot_duration_color_selected);
+                }
               }
               else
               {
-                painter->fillRect(marker_x, h - 92 + ((j % 3) * 30), marker_x2, 32, annot_duration_color);
+                if(mainwindow->annotations_duration_background_type == 0)
+                {
+                  painter->fillRect(marker_x, 0, marker_x2, h, annot_duration_color);
+                }
+                else
+                {
+                  painter->fillRect(marker_x, h - 92 + ((j % 3) * 30), marker_x2, 32, annot_duration_color);
+                }
               }
             }
           }
@@ -2072,7 +2158,7 @@ void ViewCurve::drawCurve_stage_2(QPainter *painter, int w_width, int w_height, 
               painter->drawText(marker_x + 5, h - 65 + ((j % 3) * 30), string);
             }
 
-            strncpy(string, annot->annotation, 20);
+            strncpy(string, annot->description, 20);
 
             string[20] = 0;
 
@@ -2100,7 +2186,7 @@ void ViewCurve::drawCurve_stage_2(QPainter *painter, int w_width, int w_height, 
 
           if((mainwindow->toolbar_stats.active) && (mainwindow->toolbar_stats.annot_list == annot_list))
           {
-            if((!strcmp(annot->annotation, mainwindow->toolbar_stats.annot_label)) && (mainwindow->toolbar_stats.sz < STATISTICS_IVAL_LIST_SZ))
+            if((!strcmp(annot->description, mainwindow->toolbar_stats.annot_label)) && (mainwindow->toolbar_stats.sz < STATISTICS_IVAL_LIST_SZ))
             {
               if(mainwindow->toolbar_stats.sz > 0)
               {
@@ -2274,7 +2360,7 @@ void ViewCurve::drawCurve_stage_2(QPainter *painter, int w_width, int w_height, 
         }
         painter->setPen((Qt::GlobalColor)signalcomp[i]->color);
 
-        if(mainwindow->auto_update_annot_onset && (!crosshair_1.moving) && (!mainwindow->annotationEditDock->dockedit->isHidden()))
+        if(mainwindow->auto_update_annot_onset && (!crosshair_1.moving) && (mainwindow->annotationEditDock != NULL))
         {
           mainwindow->annotationEditDock->annotEditSetOnset(crosshair_1.time_relative);
         }
@@ -2291,7 +2377,7 @@ void ViewCurve::drawCurve_stage_2(QPainter *painter, int w_width, int w_height, 
         snprintf(string, 128, "%+f %s",
                         crosshair_2.value,
                         signalcomp[i]->physdimension);
-        painter->drawText((int)(((double)crosshair_2.x_position + 5.0) * printsize_x_factor), (int)(((double)crosshair_2.y_position - 70.0) * printsize_y_factor), string); //location of where the texts are printed
+        painter->drawText((int)(((double)crosshair_2.x_position + 5.0) * printsize_x_factor), (int)(((double)crosshair_2.y_position - 70.0) * printsize_y_factor), string);
         snprintf(string, 128, "%2i:%02i:%02i.%04i",
                         (int)(((crosshair_2.time / TIME_DIMENSION)/ 3600LL) % 24LL),
                         (int)(((crosshair_2.time / TIME_DIMENSION) % 3600LL) / 60LL),
@@ -2680,7 +2766,7 @@ void ViewCurve::drawCurve_stage_1(QPainter *painter, int w_width, int w_height, 
         {
           if(s==signalcomp[i]->sample_start)
           {
-            if(mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime<=0)
+            if(signalcomp[i]->edfhdr->viewtime <= 0)
             {
               reset_spike_filter(signalcomp[i]->spike_filter);
             }
@@ -2697,7 +2783,7 @@ void ViewCurve::drawCurve_stage_1(QPainter *painter, int w_width, int w_height, 
         {
           if(s==signalcomp[i]->sample_start)
           {
-            if(mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime==0)
+            if(signalcomp[i]->edfhdr->viewtime == 0)
             {
               reset_filter(dig_value, signalcomp[i]->filter[k]);
             }
@@ -2715,7 +2801,7 @@ void ViewCurve::drawCurve_stage_1(QPainter *painter, int w_width, int w_height, 
         {
           if(s==signalcomp[i]->sample_start)
           {
-            if((mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime <= 0) && signalcomp[i]->ravg_filter_setup[k])
+            if((signalcomp[i]->edfhdr->viewtime <= 0) && signalcomp[i]->ravg_filter_setup[k])
             {
               reset_ravg_filter(dig_value, signalcomp[i]->ravg_filter[k]);
             }
@@ -2734,7 +2820,7 @@ void ViewCurve::drawCurve_stage_1(QPainter *painter, int w_width, int w_height, 
         {
           if(s==signalcomp[i]->sample_start)
           {
-            if((mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime <= 0) && signalcomp[i]->fidfilter_setup[k])
+            if((signalcomp[i]->edfhdr->viewtime <= 0) && signalcomp[i]->fidfilter_setup[k])
             {
               runin_samples = signalcomp[i]->edfhdr->edfparam[signalcomp[i]->edfsignal[0]].sf_f / signalcomp[i]->fidfilter_freq[k];
 
@@ -2767,7 +2853,7 @@ void ViewCurve::drawCurve_stage_1(QPainter *painter, int w_width, int w_height, 
         {
           if(s==signalcomp[i]->sample_start)
           {
-            if(mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime<=0)
+            if(signalcomp[i]->edfhdr->viewtime<=0)
             {
               reset_fir_filter(0, signalcomp[i]->fir_filter);
             }
@@ -2784,7 +2870,7 @@ void ViewCurve::drawCurve_stage_1(QPainter *painter, int w_width, int w_height, 
         {
           if(s==signalcomp[i]->sample_start)
           {
-            if(mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime<=0)
+            if(signalcomp[i]->edfhdr->viewtime<=0)
             {
               plif_reset_subtract_filter(signalcomp[i]->plif_ecg_filter, 0);
             }
@@ -2801,7 +2887,7 @@ void ViewCurve::drawCurve_stage_1(QPainter *painter, int w_width, int w_height, 
         {
           if(s==signalcomp[i]->sample_start)
           {
-            if(mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime <= 0LL)
+            if(signalcomp[i]->edfhdr->viewtime <= 0LL)
             {
               reset_ecg_filter(signalcomp[i]->ecg_filter);
             }
@@ -2818,7 +2904,7 @@ void ViewCurve::drawCurve_stage_1(QPainter *painter, int w_width, int w_height, 
         {
           if(s==signalcomp[i]->sample_start)
           {
-            if(mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime <= 0LL)
+            if(signalcomp[i]->edfhdr->viewtime <= 0LL)
             {
               reset_zratio_filter(signalcomp[i]->zratio_filter);
             }
@@ -2993,8 +3079,8 @@ void ViewCurve::drawCurve_stage_1(QPainter *painter, int w_width, int w_height, 
             {
               crosshair_1.y_value = value;
               crosshair_1.value = dig_value * signalcomp[i]->edfhdr->edfparam[signalcomp[i]->edfsignal[0]].bitvalue;
-              crosshair_1.time = mainwindow->edfheaderlist[signalcomp[i]->filenum]->l_starttime + mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime + signalcomp[i]->edfhdr->starttime_offset + (long long)(((double)mainwindow->pagetime / ((double)w / printsize_x_factor)) * (double)crosshair_1.x_position);
-              crosshair_1.time_relative = mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime + (long long)(((double)mainwindow->pagetime / ((double)w / printsize_x_factor)) * (double)crosshair_1.x_position);
+              crosshair_1.time = signalcomp[i]->edfhdr->l_starttime + signalcomp[i]->edfhdr->viewtime + signalcomp[i]->edfhdr->starttime_offset + (long long)(((double)mainwindow->pagetime / ((double)w / printsize_x_factor)) * (double)crosshair_1.x_position);
+              crosshair_1.time_relative = signalcomp[i]->edfhdr->viewtime + (long long)(((double)mainwindow->pagetime / ((double)w / printsize_x_factor)) * (double)crosshair_1.x_position);
             }
           }
           else
@@ -3003,8 +3089,8 @@ void ViewCurve::drawCurve_stage_1(QPainter *painter, int w_width, int w_height, 
             {
               crosshair_1.y_value = value;
               crosshair_1.value = dig_value * signalcomp[i]->edfhdr->edfparam[signalcomp[i]->edfsignal[0]].bitvalue;
-              crosshair_1.time = mainwindow->edfheaderlist[signalcomp[i]->filenum]->l_starttime + mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime + signalcomp[i]->edfhdr->starttime_offset + (long long)(((double)mainwindow->pagetime / (double)w) * (double)crosshair_1.x_position);
-              crosshair_1.time_relative = mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime + (long long)(((double)mainwindow->pagetime / (double)w) * (double)crosshair_1.x_position);
+              crosshair_1.time = signalcomp[i]->edfhdr->l_starttime + signalcomp[i]->edfhdr->viewtime + signalcomp[i]->edfhdr->starttime_offset + (long long)(((double)mainwindow->pagetime / (double)w) * (double)crosshair_1.x_position);
+              crosshair_1.time_relative = signalcomp[i]->edfhdr->viewtime + (long long)(((double)mainwindow->pagetime / (double)w) * (double)crosshair_1.x_position);
             }
           }
         }
@@ -3017,8 +3103,8 @@ void ViewCurve::drawCurve_stage_1(QPainter *painter, int w_width, int w_height, 
             {
               crosshair_2.y_value = value;
               crosshair_2.value = dig_value * signalcomp[i]->edfhdr->edfparam[signalcomp[i]->edfsignal[0]].bitvalue;
-              crosshair_2.time = mainwindow->edfheaderlist[signalcomp[i]->filenum]->l_starttime + mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime + signalcomp[i]->edfhdr->starttime_offset + (long long)(((double)mainwindow->pagetime / ((double)w / printsize_x_factor)) * (double)crosshair_2.x_position);
-              crosshair_2.time_relative = mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime + (long long)(((double)mainwindow->pagetime / ((double)w / printsize_x_factor)) * (double)crosshair_2.x_position);
+              crosshair_2.time = signalcomp[i]->edfhdr->l_starttime + signalcomp[i]->edfhdr->viewtime + signalcomp[i]->edfhdr->starttime_offset + (long long)(((double)mainwindow->pagetime / ((double)w / printsize_x_factor)) * (double)crosshair_2.x_position);
+              crosshair_2.time_relative = signalcomp[i]->edfhdr->viewtime + (long long)(((double)mainwindow->pagetime / ((double)w / printsize_x_factor)) * (double)crosshair_2.x_position);
             }
           }
           else
@@ -3027,8 +3113,8 @@ void ViewCurve::drawCurve_stage_1(QPainter *painter, int w_width, int w_height, 
             {
               crosshair_2.y_value = value;
               crosshair_2.value = dig_value * signalcomp[i]->edfhdr->edfparam[signalcomp[i]->edfsignal[0]].bitvalue;
-              crosshair_2.time = mainwindow->edfheaderlist[signalcomp[i]->filenum]->l_starttime + mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime + signalcomp[i]->edfhdr->starttime_offset + (long long)(((double)mainwindow->pagetime / (double)w) * (double)crosshair_2.x_position);
-              crosshair_2.time_relative = mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime + (long long)(((double)mainwindow->pagetime / (double)w) * (double)crosshair_2.x_position);
+              crosshair_2.time = signalcomp[i]->edfhdr->l_starttime + signalcomp[i]->edfhdr->viewtime + signalcomp[i]->edfhdr->starttime_offset + (long long)(((double)mainwindow->pagetime / (double)w) * (double)crosshair_2.x_position);
+              crosshair_2.time_relative = signalcomp[i]->edfhdr->viewtime + (long long)(((double)mainwindow->pagetime / (double)w) * (double)crosshair_2.x_position);
             }
           }
         }
@@ -3188,7 +3274,7 @@ void drawCurve_stage_1_thread::run()
       {
         if(s==signalcomp->sample_start)
         {
-          if(mainwindow->edfheaderlist[signalcomp->filenum]->viewtime<=0)
+          if(signalcomp->edfhdr->viewtime<=0)
           {
             reset_spike_filter(signalcomp->spike_filter);
           }
@@ -3205,7 +3291,7 @@ void drawCurve_stage_1_thread::run()
       {
         if(s==signalcomp->sample_start)
         {
-          if(mainwindow->edfheaderlist[signalcomp->filenum]->viewtime==0)
+          if(signalcomp->edfhdr->viewtime==0)
           {
             reset_filter(dig_value, signalcomp->filter[k]);
           }
@@ -3223,7 +3309,7 @@ void drawCurve_stage_1_thread::run()
       {
         if(s==signalcomp->sample_start)
         {
-          if((mainwindow->edfheaderlist[signalcomp->filenum]->viewtime <= 0) && signalcomp->ravg_filter_setup[k])
+          if((signalcomp->edfhdr->viewtime <= 0) && signalcomp->ravg_filter_setup[k])
           {
             reset_ravg_filter(dig_value, signalcomp->ravg_filter[k]);
           }
@@ -3242,7 +3328,7 @@ void drawCurve_stage_1_thread::run()
       {
         if(s==signalcomp->sample_start)
         {
-          if((mainwindow->edfheaderlist[signalcomp->filenum]->viewtime <= 0) && signalcomp->fidfilter_setup[k])
+          if((signalcomp->edfhdr->viewtime <= 0) && signalcomp->fidfilter_setup[k])
           {
             runin_samples = signalcomp->edfhdr->edfparam[signalcomp->edfsignal[0]].sf_f / signalcomp->fidfilter_freq[k];
 
@@ -3275,7 +3361,7 @@ void drawCurve_stage_1_thread::run()
       {
         if(s==signalcomp->sample_start)
         {
-          if(mainwindow->edfheaderlist[signalcomp->filenum]->viewtime<=0)
+          if(signalcomp->edfhdr->viewtime<=0)
           {
             reset_fir_filter(0, signalcomp->fir_filter);
           }
@@ -3292,7 +3378,7 @@ void drawCurve_stage_1_thread::run()
       {
         if(s==signalcomp->sample_start)
         {
-          if(mainwindow->edfheaderlist[signalcomp->filenum]->viewtime<=0)
+          if(signalcomp->edfhdr->viewtime<=0)
           {
             plif_reset_subtract_filter(signalcomp->plif_ecg_filter, 0);
           }
@@ -3309,7 +3395,7 @@ void drawCurve_stage_1_thread::run()
       {
         if(s==signalcomp->sample_start)
         {
-          if(mainwindow->edfheaderlist[signalcomp->filenum]->viewtime <= 0LL)
+          if(signalcomp->edfhdr->viewtime <= 0LL)
           {
             reset_ecg_filter(signalcomp->ecg_filter);
           }
@@ -3326,7 +3412,7 @@ void drawCurve_stage_1_thread::run()
       {
         if(s==signalcomp->sample_start)
         {
-          if(mainwindow->edfheaderlist[signalcomp->filenum]->viewtime <= 0LL)
+          if(signalcomp->edfhdr->viewtime <= 0LL)
           {
             reset_zratio_filter(signalcomp->zratio_filter);
           }
@@ -3501,8 +3587,8 @@ void drawCurve_stage_1_thread::run()
           {
             crosshair_1->y_value = value;
             crosshair_1->value = dig_value * signalcomp->edfhdr->edfparam[signalcomp->edfsignal[0]].bitvalue;
-            crosshair_1->time = mainwindow->edfheaderlist[signalcomp->filenum]->l_starttime + mainwindow->edfheaderlist[signalcomp->filenum]->viewtime + signalcomp->edfhdr->starttime_offset + (long long)(((double)mainwindow->pagetime / ((double)w / printsize_x_factor)) * (double)crosshair_1->x_position);
-            crosshair_1->time_relative = mainwindow->edfheaderlist[signalcomp->filenum]->viewtime + (long long)(((double)mainwindow->pagetime / ((double)w / printsize_x_factor)) * (double)crosshair_1->x_position);
+            crosshair_1->time = signalcomp->edfhdr->l_starttime + signalcomp->edfhdr->viewtime + signalcomp->edfhdr->starttime_offset + (long long)(((double)mainwindow->pagetime / ((double)w / printsize_x_factor)) * (double)crosshair_1->x_position);
+            crosshair_1->time_relative = signalcomp->edfhdr->viewtime + (long long)(((double)mainwindow->pagetime / ((double)w / printsize_x_factor)) * (double)crosshair_1->x_position);
           }
         }
         else
@@ -3511,8 +3597,8 @@ void drawCurve_stage_1_thread::run()
           {
             crosshair_1->y_value = value;
             crosshair_1->value = dig_value * signalcomp->edfhdr->edfparam[signalcomp->edfsignal[0]].bitvalue;
-            crosshair_1->time = mainwindow->edfheaderlist[signalcomp->filenum]->l_starttime + mainwindow->edfheaderlist[signalcomp->filenum]->viewtime + signalcomp->edfhdr->starttime_offset + (long long)(((double)mainwindow->pagetime / (double)w) * (double)crosshair_1->x_position);
-            crosshair_1->time_relative = mainwindow->edfheaderlist[signalcomp->filenum]->viewtime + (long long)(((double)mainwindow->pagetime / (double)w) * (double)crosshair_1->x_position);
+            crosshair_1->time = signalcomp->edfhdr->l_starttime + signalcomp->edfhdr->viewtime + signalcomp->edfhdr->starttime_offset + (long long)(((double)mainwindow->pagetime / (double)w) * (double)crosshair_1->x_position);
+            crosshair_1->time_relative = signalcomp->edfhdr->viewtime + (long long)(((double)mainwindow->pagetime / (double)w) * (double)crosshair_1->x_position);
           }
         }
       }
@@ -3525,8 +3611,8 @@ void drawCurve_stage_1_thread::run()
           {
             crosshair_2->y_value = value;
             crosshair_2->value = dig_value * signalcomp->edfhdr->edfparam[signalcomp->edfsignal[0]].bitvalue;
-            crosshair_2->time = mainwindow->edfheaderlist[signalcomp->filenum]->l_starttime + mainwindow->edfheaderlist[signalcomp->filenum]->viewtime + signalcomp->edfhdr->starttime_offset + (long long)(((double)mainwindow->pagetime / ((double)w / printsize_x_factor)) * (double)crosshair_2->x_position);
-            crosshair_2->time_relative = mainwindow->edfheaderlist[signalcomp->filenum]->viewtime + (long long)(((double)mainwindow->pagetime / ((double)w / printsize_x_factor)) * (double)crosshair_2->x_position);
+            crosshair_2->time = signalcomp->edfhdr->l_starttime + signalcomp->edfhdr->viewtime + signalcomp->edfhdr->starttime_offset + (long long)(((double)mainwindow->pagetime / ((double)w / printsize_x_factor)) * (double)crosshair_2->x_position);
+            crosshair_2->time_relative = signalcomp->edfhdr->viewtime + (long long)(((double)mainwindow->pagetime / ((double)w / printsize_x_factor)) * (double)crosshair_2->x_position);
           }
         }
         else
@@ -3535,8 +3621,8 @@ void drawCurve_stage_1_thread::run()
           {
             crosshair_2->y_value = value;
             crosshair_2->value = dig_value * signalcomp->edfhdr->edfparam[signalcomp->edfsignal[0]].bitvalue;
-            crosshair_2->time = mainwindow->edfheaderlist[signalcomp->filenum]->l_starttime + mainwindow->edfheaderlist[signalcomp->filenum]->viewtime + signalcomp->edfhdr->starttime_offset + (long long)(((double)mainwindow->pagetime / (double)w) * (double)crosshair_2->x_position);
-            crosshair_2->time_relative = mainwindow->edfheaderlist[signalcomp->filenum]->viewtime + (long long)(((double)mainwindow->pagetime / (double)w) * (double)crosshair_2->x_position);
+            crosshair_2->time = signalcomp->edfhdr->l_starttime + signalcomp->edfhdr->viewtime + signalcomp->edfhdr->starttime_offset + (long long)(((double)mainwindow->pagetime / (double)w) * (double)crosshair_2->x_position);
+            crosshair_2->time_relative = signalcomp->edfhdr->viewtime + (long long)(((double)mainwindow->pagetime / (double)w) * (double)crosshair_2->x_position);
           }
         }
       }
@@ -3555,10 +3641,10 @@ void ViewCurve::exec_sidemenu(int signal_nr_intern)
 
   sidemenu = new QDialog(this);
 
-  sidemenu->setMinimumSize(190, 515);
-  sidemenu->setMaximumSize(190, 515);
+  sidemenu->setMinimumSize(190, 575);
+  sidemenu->setMaximumSize(190, 575);
   sidemenu->setWindowTitle("Signal");
-  sidemenu->setModal(false);
+  sidemenu->setModal(true);
   sidemenu->setAttribute(Qt::WA_DeleteOnClose, true);
 
   SidemenuLabel = new QLabel(sidemenu);
@@ -3657,15 +3743,30 @@ void ViewCurve::exec_sidemenu(int signal_nr_intern)
 
   sidemenuButton12 = new QPushButton(sidemenu);
   sidemenuButton12->setGeometry(45, 455, 100, 25);
-  sidemenuButton12->setText("Heart Rate");
+  sidemenuButton12->setText("QRS det.");
+  if(mainwindow->live_stream_active)
+  {
+    sidemenuButton12->setEnabled(false);
+  }
 
   sidemenuButton13 = new QPushButton(sidemenu);
   sidemenuButton13->setGeometry(45, 485, 100, 25);
-  sidemenuButton13->setText("Close");
+  sidemenuButton13->setText("Heart Rate");
+
+  sidemenuButton14 = new QPushButton(sidemenu);
+  sidemenuButton14->setGeometry(45, 515, 100, 25);
+  sidemenuButton14->setText("CDSA");
+  if(mainwindow->live_stream_active)
+  {
+    sidemenuButton14->setEnabled(false);
+  }
+
+  sidemenuButton15 = new QPushButton(sidemenu);
+  sidemenuButton15->setGeometry(45, 545, 100, 25);
+  sidemenuButton15->setText("Close");
 
   QObject::connect(ScaleBox,          SIGNAL(valueChanged(double)),     this,     SLOT(ScaleBoxChanged(double)));
   QObject::connect(ScaleBox2,         SIGNAL(valueChanged(double)),     this,     SLOT(ScaleBox2Changed(double)));
- // QObject::connect(, SIGNAL(clicked()),this, SLOT(CrosshairButton()));
   QObject::connect(sidemenuButton1,   SIGNAL(clicked()),                this,     SLOT(RulerButton()));
   QObject::connect(sidemenuButton2,   SIGNAL(clicked()),                this,     SLOT(CrosshairButton()));
   QObject::connect(sidemenuButton3,   SIGNAL(clicked()),                this,     SLOT(FittopaneButton()));
@@ -3677,10 +3778,13 @@ void ViewCurve::exec_sidemenu(int signal_nr_intern)
   QObject::connect(sidemenuButton9,   SIGNAL(clicked()),                this,     SLOT(RemovesignalButton()));
   QObject::connect(sidemenuButton10,  SIGNAL(clicked()),                this,     SLOT(AdjustFilterButton()));
   QObject::connect(sidemenuButton11,  SIGNAL(clicked()),                this,     SLOT(StatisticsButton()));
-  QObject::connect(sidemenuButton12,  SIGNAL(clicked()),                this,     SLOT(ECGdetectButton()));
-  QObject::connect(sidemenuButton13,  SIGNAL(clicked()),                this,     SLOT(sidemenu_close()));
+  QObject::connect(sidemenuButton12,  SIGNAL(clicked()),                this,     SLOT(QRSdetectButton()));
+  QObject::connect(sidemenuButton13,  SIGNAL(clicked()),                this,     SLOT(ECGdetectButton()));
+  QObject::connect(sidemenuButton14,  SIGNAL(clicked()),                this,     SLOT(cdsa_button()));
+  QObject::connect(sidemenuButton15,  SIGNAL(clicked()),                this,     SLOT(sidemenu_close()));
   QObject::connect(AliasLineEdit,     SIGNAL(returnPressed()),          this,     SLOT(sidemenu_close()));
-  sidemenu->show();//changed from .exec to .show -> all the stupid probels averted
+
+  sidemenu->show();
 }
 
 
@@ -3707,12 +3811,7 @@ void ViewCurve::signalInvert()
 {
   sidemenu->close();
 
-  if(!mainwindow->signalcomps)
-  {
-    return;
-  }
-
-  if(signal_nr>(mainwindow->signalcomps - 1))
+  if(signal_nr >= mainwindow->signalcomps)
   {
     return;
   }
@@ -3727,21 +3826,49 @@ void ViewCurve::signalInvert()
 
 void ViewCurve::ECGdetectButton()
 {
-  int i;
+  int i, sense=1;
+
+  char str[32]={""};
 
   struct signalcompblock *newsignalcomp;
 
   sidemenu->close();
 
-  if(!mainwindow->signalcomps)
+  if(signal_nr >= mainwindow->signalcomps)
   {
     return;
   }
 
-  if(signal_nr>(mainwindow->signalcomps - 1))
+  if(mainwindow->signalcomp[signal_nr]->edfhdr->edfparam[mainwindow->signalcomp[signal_nr]->edfsignal[0]].sf_f < 199.999)
   {
+    QMessageBox messagewindow(QMessageBox::Critical, "Error", "Sample rate of selected signal is less than 200 Hz!");
+    messagewindow.exec();
+
     return;
   }
+
+  strlcpy(str, mainwindow->signalcomp[signal_nr]->edfhdr->edfparam[mainwindow->signalcomp[signal_nr]->edfsignal[0]].physdimension, 32);
+  remove_trailing_spaces(str);
+  remove_leading_spaces(str);
+  if((!strcmp(str, "uV")) || (!strcmp(str, "ECG uV")) || (!strcmp(str, "EEG uV")))
+  {
+    sense = 1;
+  }
+  else if((!strcmp(str, "mV")) || (!strcmp(str, "ECG mV")) || (!strcmp(str, "EEG mV")))
+    {
+      sense = 1000;
+    }
+    else if((!strcmp(str, "V")) || (!strcmp(str, "ECG V")) || (!strcmp(str, "EEG V")))
+      {
+        sense = 1000000;
+      }
+      else
+      {
+        QMessageBox messagewindow(QMessageBox::Critical, "Error", "Unknown unit (physical dimension), expected uV or mV or V");
+        messagewindow.exec();
+
+        return;
+      }
 
   if(mainwindow->signalcomp[signal_nr]->zratio_filter != NULL)
   {
@@ -3768,7 +3895,15 @@ void ViewCurve::ECGdetectButton()
   newsignalcomp->ecg_filter =
     create_ecg_filter(newsignalcomp->edfhdr->edfparam[newsignalcomp->edfsignal[0]].sf_f,
                       newsignalcomp->edfhdr->edfparam[newsignalcomp->edfsignal[0]].bitvalue,
-                      mainwindow->powerlinefreq);
+                      sense);
+
+  if(newsignalcomp->ecg_filter == NULL)
+  {
+    QMessageBox messagewindow(QMessageBox::Critical, "Error", "Could not create the QRS detector.");
+    messagewindow.exec();
+
+    return;
+  }
 
   strlcpy(newsignalcomp->signallabel_bu, newsignalcomp->signallabel, 512);
   newsignalcomp->signallabellen_bu = newsignalcomp->signallabellen;
@@ -3804,16 +3939,57 @@ void ViewCurve::ECGdetectButton()
 }
 
 
-void ViewCurve::AdjustFilterButton()
+void ViewCurve::QRSdetectButton()
 {
+  char str[32]={""};
+
   sidemenu->close();
 
-  if(!mainwindow->signalcomps)
+  if(signal_nr >= mainwindow->signalcomps)
   {
     return;
   }
 
-  if(signal_nr>(mainwindow->signalcomps - 1))
+  if(mainwindow->signalcomp[signal_nr]->edfhdr->edfparam[mainwindow->signalcomp[signal_nr]->edfsignal[0]].sf_f < 199.999)
+  {
+    QMessageBox messagewindow(QMessageBox::Critical, "Error", "Sample rate of selected signal is less than 200 Hz!");
+    messagewindow.exec();
+
+    return;
+  }
+
+  strlcpy(str, mainwindow->signalcomp[signal_nr]->edfhdr->edfparam[mainwindow->signalcomp[signal_nr]->edfsignal[0]].physdimension, 32);
+  remove_trailing_spaces(str);
+  remove_leading_spaces(str);
+  if((strcmp(str, "uV")) && (strcmp(str, "ECG uV")) && (strcmp(str, "EEG uV")) &&
+     (strcmp(str, "mV")) && (strcmp(str, "ECG mV")) && (strcmp(str, "EEG mV")) &&
+     (strcmp(str, "V")) && (strcmp(str, "ECG V")) && (strcmp(str, "EEG V")))
+  {
+    QMessageBox messagewindow(QMessageBox::Critical, "Error", "Unknown unit (physical dimension), expected uV or mV or V");
+    messagewindow.exec();
+
+    return;
+  }
+
+  if(mainwindow->signalcomp[signal_nr]->zratio_filter != NULL)
+  {
+    QMessageBox messagewindow(QMessageBox::Critical, "Error", "Z-ratio is active for this signal!");
+    messagewindow.exec();
+
+    return;
+  }
+
+  UI_QRS_detector ui_qrs_det(mainwindow, mainwindow->signalcomp[signal_nr]);
+
+  mainwindow->enable_hrv_stats_toolbar(mainwindow->ecg_qrs_rpeak_descr, &mainwindow->signalcomp[signal_nr]->edfhdr->annot_list);
+}
+
+
+void ViewCurve::AdjustFilterButton()
+{
+  sidemenu->close();
+
+  if(signal_nr >= mainwindow->signalcomps)
   {
     return;
   }
@@ -3831,17 +4007,8 @@ void ViewCurve::AdjustFilterButton()
 
 void ViewCurve::StatisticsButton()
 {
-  if(!mainwindow->signalcomps)
+  if(signal_nr >= mainwindow->signalcomps)
   {
-    sidemenu->close();
-
-    return;
-  }
-
-  if(signal_nr>(mainwindow->signalcomps - 1))
-  {
-    sidemenu->close();
-
     return;
   }
 
@@ -3854,6 +4021,11 @@ void ViewCurve::StatisticsButton()
 void ViewCurve::FreqSpecButton()
 {
   int i, j;
+
+  if(signal_nr >= mainwindow->signalcomps)
+  {
+    return;
+  }
 
   for(i=0; i<MAXSPECTRUMDIALOGS; i++)
   {
@@ -3894,9 +4066,56 @@ void ViewCurve::FreqSpecButton()
 }
 
 
+void ViewCurve::cdsa_button()
+{
+  int i;
+
+  sidemenu->close();
+
+  if(signal_nr >= mainwindow->signalcomps)
+  {
+    return;
+  }
+
+  if(mainwindow->signalcomp[signal_nr]->ecg_filter != NULL)
+  {
+    return;
+  }
+
+  if(mainwindow->signalcomp[signal_nr]->edfhdr->edfparam[mainwindow->signalcomp[signal_nr]->edfsignal[0]].sf_int < 30)
+  {
+    QMessageBox messagewindow(QMessageBox::Critical, "Error", "Samplefrequency must be at least 30Hz and must be an integer value.");
+    messagewindow.exec();
+    return;
+  }
+
+  if(mainwindow->signalcomp[signal_nr]->edfhdr->recording_len_sec < 30)
+  {
+    QMessageBox messagewindow(QMessageBox::Critical, "Error", "Recording length must be at least 30 seconds.");
+    messagewindow.exec();
+    return;
+  }
+
+  for(i=0; i<MAXCDSADOCKS; i++)
+  {
+    if(mainwindow->cdsa_dock[i] == NULL)
+    {
+      UI_cdsa_window wndw(mainwindow, mainwindow->signalcomp[signal_nr], i);
+
+      break;
+    }
+  }
+}
+
+
 void ViewCurve::Z_scoringButton()
 {
   int i, j;
+
+  if(signal_nr >= mainwindow->signalcomps)
+  {
+    return;
+  }
 
   if(mainwindow->signalcomp[signal_nr]->ecg_filter != NULL)
   {
@@ -3973,17 +4192,8 @@ void ViewCurve::FittopaneButton()
   signalcomps = mainwindow->signalcomps;
   signalcomp = mainwindow->signalcomp;
 
-  if(!signalcomps)
+  if(signal_nr >= mainwindow->signalcomps)
   {
-    sidemenu->close();
-
-    return;
-  }
-
-  if(signal_nr>(signalcomps - 1))
-  {
-    sidemenu->close();
-
     return;
   }
 
@@ -4018,6 +4228,11 @@ void ViewCurve::ColorButton()
 {
   int color;
 
+  if(signal_nr >= mainwindow->signalcomps)
+  {
+    return;
+  }
+
   sidemenu->hide();
 
   UI_ColorMenuDialog colormenudialog(&color, this);
@@ -4040,6 +4255,11 @@ void ViewCurve::ColorButton()
 
 void ViewCurve::ScaleBox2Changed(double value)
 {
+  if(signal_nr >= mainwindow->signalcomps)
+  {
+    return;
+  }
+
   mainwindow->signalcomp[signal_nr]->screen_offset = -(value / (mainwindow->pixelsizefactor * mainwindow->signalcomp[signal_nr]->voltpercm));
 
   drawCurve_stage_1();
@@ -4052,6 +4272,11 @@ void ViewCurve::ScaleBoxChanged(double value)
   int i;
 
   double original_value;
+
+  if(signal_nr >= mainwindow->signalcomps)
+  {
+    return;
+  }
 
   if(mainwindow->signalcomp[signal_nr]->edfhdr->edfparam[mainwindow->signalcomp[signal_nr]->edfsignal[0]].bitvalue < 0.0)
   {
@@ -4078,17 +4303,8 @@ void ViewCurve::RemovefilterButton()
 {
   int j;
 
-  if(!mainwindow->signalcomps)
+  if(signal_nr >= mainwindow->signalcomps)
   {
-    sidemenu->close();
-
-    return;
-  }
-
-  if(signal_nr>(mainwindow->signalcomps - 1))
-  {
-    sidemenu->close();
-
     return;
   }
 
@@ -4158,17 +4374,8 @@ void ViewCurve::RemovesignalButton()
 {
   int i, j, p;
 
-  if(!mainwindow->signalcomps)
+  if(signal_nr >= mainwindow->signalcomps)
   {
-    sidemenu->close();
-
-    return;
-  }
-
-  if(signal_nr>(mainwindow->signalcomps - 1))
-  {
-    sidemenu->close();
-
     return;
   }
 
@@ -4190,6 +4397,18 @@ void ViewCurve::RemovesignalButton()
       delete mainwindow->spectrumdialog[p - 1];
 
       mainwindow->spectrumdialog[p - 1] = NULL;
+    }
+  }
+
+  for(i=0; i<MAXCDSADOCKS; i++)
+  {
+    p = mainwindow->signalcomp[signal_nr]->cdsa_dock[i];
+
+    if(p != 0)
+    {
+      delete mainwindow->cdsa_dock[p - 1];
+
+      mainwindow->cdsa_dock[p - 1] = NULL;
     }
   }
 
@@ -4318,6 +4537,8 @@ void ViewCurve::RemovesignalButton()
 
   free(mainwindow->signalcomp[signal_nr]);
 
+  mainwindow->signalcomp[signal_nr] = NULL;
+
   for(i=signal_nr; i<mainwindow->signalcomps - 1; i++)
   {
     mainwindow->signalcomp[i] = mainwindow->signalcomp[i + 1];
@@ -4335,6 +4556,10 @@ void ViewCurve::RulerButton()
 {
   int i;
 
+  if(signal_nr >= mainwindow->signalcomps)
+  {
+    return;
+  }
 
   crosshair_1.moving = 0;
   crosshair_2.moving = 0;
@@ -4407,6 +4632,11 @@ void ViewCurve::CrosshairButton()
 {
   int i;
 
+  if(signal_nr >= mainwindow->signalcomps)
+  {
+    return;
+  }
+
   if(!crosshair_1.active)
   {
     for(i=0; i<mainwindow->signalcomps; i++)
@@ -4423,7 +4653,7 @@ void ViewCurve::CrosshairButton()
     crosshair_2.active = 0;
     crosshair_1.moving = 0;
     crosshair_2.moving = 0;
-    crosshair_1.file_num = mainwindow->signalcomp[signal_nr]->filenum;
+    crosshair_1.edf_hdr = mainwindow->signalcomp[signal_nr]->edfhdr;
 
     crosshair_1.x_position = w * 0.3;
     crosshair_1.y_position = h * 0.7;
@@ -4445,7 +4675,7 @@ void ViewCurve::CrosshairButton()
       crosshair_2.active = 1;
       crosshair_1.moving = 0;
       crosshair_2.moving = 0;
-      crosshair_2.file_num = mainwindow->signalcomp[signal_nr]->filenum;
+      crosshair_2.edf_hdr = mainwindow->signalcomp[signal_nr]->edfhdr;
 
       crosshair_2.x_position = w * 0.6;
       crosshair_2.y_position = h * 0.7;
@@ -4462,7 +4692,10 @@ void ViewCurve::next_crosshair_triggered()
 {
   int i, n=0;
 
-  if(!mainwindow->signalcomps)  return;
+  if(!mainwindow->signalcomps)
+  {
+    return;
+  }
 
   for(i=0; i<mainwindow->signalcomps; i++)
   {
@@ -4501,7 +4734,7 @@ void ViewCurve::next_crosshair_triggered()
     crosshair_2.active = 0;
     crosshair_1.moving = 0;
     crosshair_2.moving = 0;
-    crosshair_1.file_num = mainwindow->signalcomp[n]->filenum;
+    crosshair_1.edf_hdr = mainwindow->signalcomp[n]->edfhdr;
 
     crosshair_1.x_position = w * 0.3;
     crosshair_1.y_position = h * 0.7;
@@ -4523,7 +4756,7 @@ void ViewCurve::next_crosshair_triggered()
       crosshair_2.active = 1;
       crosshair_1.moving = 0;
       crosshair_2.moving = 0;
-      crosshair_2.file_num = mainwindow->signalcomp[n]->filenum;
+      crosshair_2.edf_hdr = mainwindow->signalcomp[n]->edfhdr;
 
       crosshair_2.x_position = w * 0.6;
       crosshair_2.y_position = h * 0.7;
@@ -4861,6 +5094,23 @@ void ViewCurve::strip_types_from_label(char *label)
 }
 
 
+void ViewCurve::dragEnterEvent(QDragEnterEvent *e)
+{
+  if(e->mimeData()->hasUrls())
+  {
+    e->acceptProposedAction();
+  }
+}
+
+
+void ViewCurve::dropEvent(QDropEvent *e)
+{
+  if(e->mimeData()->urls().count() < 1)  return;
+
+  strlcpy(mainwindow->drop_path, e->mimeData()->urls().first().toLocalFile().toLocal8Bit().data(), MAX_PATH_LENGTH);
+
+  emit file_dropped();
+}
 
 
 

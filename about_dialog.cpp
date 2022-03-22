@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2007 - 2019 Teunis van Beelen
+* Copyright (C) 2007 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -64,7 +63,7 @@ UI_Aboutwindow::UI_Aboutwindow(UI_Mainwindow *mainwindow)
   textedit1->setPlainText(
         "\n " PROGRAM_NAME " version " PROGRAM_VERSION " " PROGRAM_BETA_SUFFIX "    " THIS_APP_BITS_W "\n"
         "\n This program is made by Teunis van Beelen.\n"
-        "\n Copyright (C) 2007 - 2019 Teunis van Beelen.\n"
+        "\n Copyright (C) 2007 - 2020 Teunis van Beelen.\n"
         "\n Email: teuniz@protonmail.com\n"
         "\n Disclaimer:\n"
         " Despite this software is intend to be useful, there is no warranty, use this software at your own risk!\n"

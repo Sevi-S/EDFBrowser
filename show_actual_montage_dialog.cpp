@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2007 - 2019 Teunis van Beelen
+* Copyright (C) 2007 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -40,7 +39,8 @@ UI_ShowActualMontagewindow::UI_ShowActualMontagewindow(QWidget *w_parent)
       order,
       n_taps;
 
-  char txtbuf[2048];
+  char txtbuf[2048]="",
+       str[64]="";
 
   double frequency,
          frequency2,
@@ -97,8 +97,12 @@ UI_ShowActualMontagewindow::UI_ShowActualMontagewindow(QWidget *w_parent)
 
     for(j=0; j<mainwindow->signalcomp[i]->num_of_signals; j++)
     {
-      snprintf(txtbuf + strlen(txtbuf), 2048 - strlen(txtbuf), "%+ix %s",
-              mainwindow->signalcomp[i]->factor[j],
+      snprintf(str, 64, "%+f", mainwindow->signalcomp[i]->factor[j]);
+
+      remove_trailing_zeros(str);
+
+      snprintf(txtbuf + strlen(txtbuf), 2048 - strlen(txtbuf), "%sx %s",
+              str,
               mainwindow->signalcomp[i]->edfhdr->edfparam[mainwindow->signalcomp[i]->edfsignal[j]].label);
 
       remove_trailing_spaces(txtbuf);

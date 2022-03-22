@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2011 - 2019 Teunis van Beelen
+* Copyright (C) 2011 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -186,7 +185,13 @@ void UI_ECGExport::Export_RR_intervals()
       return;
     }
 
-    filenum = signalcomp->filenum;
+    filenum = mainwindow->get_filenum(signalcomp->edfhdr);
+    if(filenum < 0)
+    {
+      QMessageBox messagewindow(QMessageBox::Critical, "Error", "Internal error: filenum < 0");
+      messagewindow.exec();
+      return;
+    }
 
     reset_ecg_filter(signalcomp->ecg_filter);
 
@@ -249,8 +254,8 @@ void UI_ECGExport::Export_RR_intervals()
     }
 
     memset(&annotation, 0, sizeof(struct annotationblock));
-    strncpy(annotation.annotation, "R-onset", MAX_ANNOTATION_LEN);
-    annotation.annotation[MAX_ANNOTATION_LEN] = 0;
+    strncpy(annotation.description, mainwindow->ecg_qrs_rpeak_descr, MAX_ANNOTATION_LEN);
+    annotation.description[MAX_ANNOTATION_LEN] = 0;
 
     for(i=0; i<beat_cnt; i++)
     {
@@ -285,9 +290,9 @@ void UI_ECGExport::Export_RR_intervals()
       edfplus_annotation_add_item(&mainwindow->edfheaderlist[filenum]->annot_list, annotation);
     }
 
-    if(mainwindow->annotations_dock[signalcomp->filenum] == NULL)
+    if(mainwindow->annotations_dock[filenum] == NULL)
     {
-      mainwindow->annotations_dock[filenum] = new UI_Annotationswindow(filenum, mainwindow);
+      mainwindow->annotations_dock[filenum] = new UI_Annotationswindow(signalcomp->edfhdr, mainwindow);
 
       mainwindow->addDockWidget(Qt::RightDockWidgetArea, mainwindow->annotations_dock[filenum]->docklist, Qt::Vertical);
 
@@ -411,7 +416,7 @@ void UI_ECGExport::Export_RR_intervals()
 
   if(!import_as_annots)
   {
-    snprintf(str, 2048, "Done. The R-onsets and/or RR-intervals are exported to:\n\n%s", path);
+    snprintf(str, 2048, "Done. The %s's and/or RR-intervals are exported to:\n\n%s", mainwindow->ecg_qrs_rpeak_descr, path);
     QMessageBox messagewindow(QMessageBox::Information, "Ready", QString::fromLocal8Bit(str));
     messagewindow.setIconPixmap(QPixmap(":/images/ok.png"));
     messagewindow.exec();

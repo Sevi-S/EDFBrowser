@@ -1,8 +1,111 @@
 
-version 1.71      December 21, 2019
+ version 1.78      to be defined
+ --------------
+
+ - Signals dialog: make it possible to compose derivations with signal factors that are not an integer.
+   E.g.: It's now possible to create a signalcomposition of (1 x F4) - (0.5 x A1) - (0.5 x A2).
+
+ - Several different import tools: Filedialog: give an option to show "All files (*)" instead of only the default extensions.
+
+ - Organize Signals dialog: Make it possible to edit the signal/trace properties and show the alias.
+
+
+
+ version 1.77      June 24, 2020
+ --------------
+
+ - Annotation editor: added auto-completion for the annotation description field.
+
+ - Positionslider: fixed a bug that could cause the slider to jump back to the beginning
+   with filelengths of more than 255 hours.
+
+
+
+ version 1.76      May 12, 2020
+ --------------
+
+ - Adjust filter dialog:  fixed a bug that potentially could cause a crash (segmentation fault).
+
+ - Fixed some compiler warnings related to deprecated declarations.
+
+ - Signalchooser widget: skip it if there's only one signal on the screen.
+
+ - Adapt the colorbutton when choosing varying colors when loading signals.
+
+ - Average waveform dialog: fixed a bug that prevented setting the stop time with recordings >= 24 hours.
+
+
+
+ version 1.75      April 25, 2020
+ --------------
+
+ - Color chooser dialog:  fixed a bug that showed a "vary colors" button
+   in places where it shouldn't.
+
+ - Pan-Tompkins QRS detector: added an improvement in order to recover faster
+   after artefacts with very high amplitude.
+
+ - Fixed a bug that caused a crash (segmentation fault) when opening the
+   annotation editor caused by dereferencing a null-pointer.
+
+
+
+ version 1.74      April 17, 2020
+ --------------
+
+ - MIT (Physionet) to EDF+ converter: fixed a bug related to ADC baseline and ADC zero
+   which could possibly cause a wrong DC-offset.
+
+ - Fixed a bug that could render the keyboard shortcut for crosshairs inoperable.
+
+ - Fixed a bug related to the option "Annotations: filter list only".
+
+ - Override setting "Vary signal colors" when manually selecting a signal color in
+   the "Add Signals" dialog.
+
+ - Heartrate / beat detector: replaced the QRS detector with the Pan-Tompkins algorithm.
+   Added a quick-access in the Tools menu. Added a heart rate toolbar with timeline.
+
+
+
+ version 1.73      March 15, 2020
+ --------------
+
+ - Added the possibility to show a Hypnogram using sleepstages from the annotations.
+
+
+
+ version 1.72      February 8, 2020
+ --------------
+
+ - Spectrum Analyzer: added window type "Kaiser".
+
+ - Added the possibility to show a Color Density Spectral Array (CDSA).
+
+ - Use a different color for an annotations' background when it's selected in the annotations list.
+
+ - Added "drag & drop" for loading an EDF file.
+
+ - Fixed a missing feature in the MIT to EDF converter.
+
+
+
+ version 1.71      December 21, 2019
  --------------
 
  - Added an option in the settings dialog to enable to assign varying colors to traces
+   when adding traces to the screen.
+
+ - Spectrumanalyzer: switch to exponential notation in case of big numbers.
+
+ - Spectrum Analyzer: added window type "HFT95".
+
+ - Converters: added a ISHNE Holter ECG to EDF converter.
+
+ - Videoplayer: fixed a bug that could cause a wrong synchronization between the video and the EDF file.
+
+ - Import annotations: solved a bug that prevented to import annotations stored in an ASCII file when
+   the option "Manual description" was enabled.
 
 
 

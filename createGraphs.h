@@ -1,9 +1,9 @@
 //
-// Created by Sevi Suonenlahti on 20.12.2019.
+// Created by Sevi Suonenlahti on 3.9.2020.
 //
 
-#ifndef EDFBROWSER_170_SOURCE_CREATEGRAPHS_H
-#define EDFBROWSER_170_SOURCE_CREATEGRAPHS_H
+#ifndef EDFBROWSER_MASTER_CREATEGRAPHS_H
+#define EDFBROWSER_MASTER_CREATEGRAPHS_H
 
 #include <QtGlobal>
 #include <QApplication>
@@ -41,33 +41,49 @@
 #include "ravg_filter.h"
 #include "flywheel.h"
 #include "fft_wrap.h"
-#include "import_Data.h"
-
-
+#include "import_gyrodata.h"
 #include "third_party/fidlib/fidlib.h"
+
+#include "startGyroAnalysis.h"
+#include "sync_manager.h"
+
+
 class UI_Mainwindow;
 
 class createGraphs : public QObject {
-    Q_OBJECT
-    public:
-        createGraphs(QWidget *w_parent);
+Q_OBJECT
+public:
+    createGraphs(QWidget *w_parent);
 
 
-        UI_Mainwindow *mainwindow;
+    UI_Mainwindow *mainwindow;
 
-        ~createGraphs();
+    ~createGraphs();
+    int counter = 0;
+
+
+    QDockWidget* dock;
+
+    struct tremor {
+        int TremorNum;
+        long double StartTime;
+        long double EndTime;
+        long double EMGStart;
+        long double EMGEnd;
+    };
 
 private:
 
-    QDockWidget* dock;
+  //  QDockWidget* dock;
     QPushButton *AddButtonCreate, *AddButtonCross, *AddButtonGet;
+    QLabel *tremNumba;
 
-    int counter;
+    tremor Tremor[24];
 
 private slots:
-    void testFunc();
     void selectArea();
     void getArea();
+    void gotToAnalysis();
 
 public slots:
 
@@ -75,4 +91,4 @@ public slots:
 };
 
 
-#endif //EDFBROWSER_170_SOURCE_CREATEGRAPHS_H
+#endif //EDFBROWSER_MASTER_CREATEGRAPHS_H

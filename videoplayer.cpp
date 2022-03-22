@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2007 - 2019 Teunis van Beelen
+* Copyright (C) 2007 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -27,8 +26,6 @@
 
 
 #include "mainwindow.h"
-#include <string.h>
-
 
 
 // #define DEBUG_VIDEOPLAYER
@@ -97,7 +94,7 @@ void UI_Mainwindow::start_stop_video()
   }
 
   strlcpy(videopath, QFileDialog::getOpenFileName(this, "Select media file", QString::fromLocal8Bit(recent_opendir),
-                                                 "Video and audio files (*)").toLocal8Bit().data(), MAX_PATH_LENGTH);
+                                                 "Video files (*.mkv *.mp4 *.mpg *.mpeg *.avi *.webm *.ogv *.ogg *.wmv *.mov *.m4v);;Audio files (*.wav *.ogg *.flac *.mp3 *.aac *.m4a *.wma);;All files (*)").toLocal8Bit().data(), MAX_PATH_LENGTH);
 
   if(!strcmp(videopath, ""))
   {
@@ -161,7 +158,7 @@ void UI_Mainwindow::start_stop_video()
 
     port = (time(NULL) % 1000) + 3000 + process_start_retries;
 
-     snprintf(str, 4096, "localhost:%i", port);
+    snprintf(str, 4096, "localhost:%i", port);
 
     video_process = new QProcess(0);
 
@@ -191,13 +188,10 @@ void UI_Mainwindow::start_stop_video()
       }
     }
 #else
-    arguments << "--extraintf"<< "rc" << "--rc-host"<< str <<"--rc-show-pos" << "--ignore-config" << "--video-on-top" << "--width" << "150" << "--height" << "150";
-    //  arguments << "--I"<< "rc" << "--rc-host"<< str <<"--rc-show-pos" << "--ignore-config" << "--video-on-top" << "--width" << "150" << "--height" << "150";
-
+    arguments << "-I" << "rc" << "--rc-host" << str << "--video-on-top" << "--width" << "150" << "--height" << "150" << "--ignore-config";
 
 #ifdef Q_OS_MAC
     video_process->start("/Applications/VLC.app/Contents/MacOS/VLC", arguments);
-    //   video_process->start("/Applications/VLC.app/Contents/MacOS/VLC");
 #else
     video_process->start("vlc", arguments);
 #endif
@@ -213,7 +207,7 @@ void UI_Mainwindow::start_stop_video()
       continue;
     }
 #endif
-  //  msgbox.setText("   \n Opening a socket to the video player, please wait ... \n   ");
+//    msgbox.setText("   \n Opening a socket to the video player, please wait ... \n   ");
 
     for(sock_connect_retries=0; sock_connect_retries<3; sock_connect_retries++)
     {
@@ -227,9 +221,11 @@ void UI_Mainwindow::start_stop_video()
       if(vlc_sock->waitForConnected(5000) == true)
       {
         connected = 1;
+
         break;
       }
     }
+
     if(connected)  break;
 
     if(sock_connect_retries == 3)
@@ -499,8 +495,8 @@ void UI_Mainwindow::video_poll_timer_func()
 
         if(video_player->fpos != vpos)
         {
+          jump_to_time_millisec(((video_player->utc_starttime - edfheaderlist[sel_viewtime]->utc_starttime + vpos) * 1000LL) - (pagetime / 20000LL));
 
-            jump_to_time_millisec(((video_player->utc_starttime - edfheaderlist[sel_viewtime]->utc_starttime + vpos) * 1000LL) - (pagetime / 20000LL));
           video_player->fpos = vpos;
 
           video_player->stop_det_counter = 0;
@@ -646,6 +642,7 @@ void UI_Mainwindow::video_player_toggle_pause()
 void UI_Mainwindow::stop_video_generic(int stop_reason)
 {
   QEventLoop evlp;
+
 
   faster_Act->setVisible(false);
 

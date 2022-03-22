@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2010 - 2019 Teunis van Beelen
+* Copyright (C) 2010 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -557,7 +556,7 @@ void UI_BIOSEMI2BDFPLUSwindow::SelectFileButton()
             {
               annotation.onset = (datarecords * EDFLIB_TIME_DIMENSION) + ((long long)i * status_sample_duration);
               annotation.onset += hdr.starttime_subsecond;
-              strlcpy(annotation.annotation, triggerlabel[j], MAX_ANNOTATION_LEN_II + 1);
+              strlcpy(annotation.description, triggerlabel[j], MAX_ANNOTATION_LEN_II + 1);
               if(edfplus_annotation_add_item(&annot_list, annotation))
               {
                 progress.reset();
@@ -584,7 +583,7 @@ void UI_BIOSEMI2BDFPLUSwindow::SelectFileButton()
                   {
                     break;
                   }
-                  if(!strcmp(annot_ptr->annotation, triggerlabel[j]))
+                  if(!strcmp(annot_ptr->description, triggerlabel[j]))
                   {
                     snprintf(str, 2048, "%.4f", (double)((datarecords * EDFLIB_TIME_DIMENSION) + ((long long)i * status_sample_duration) - annot_ptr->onset) / (double)EDFLIB_TIME_DIMENSION);
                     str[15] = 0;
@@ -604,7 +603,7 @@ void UI_BIOSEMI2BDFPLUSwindow::SelectFileButton()
             {
               annotation.onset = (datarecords * EDFLIB_TIME_DIMENSION) + ((long long)i * status_sample_duration);
               annotation.onset += hdr.starttime_subsecond;
-              strlcpy(annotation.annotation, triggerlabel[j], MAX_ANNOTATION_LEN_II + 1);
+              strlcpy(annotation.description, triggerlabel[j], MAX_ANNOTATION_LEN_II + 1);
               if(edfplus_annotation_add_item(&annot_list, annotation))
               {
                 progress.reset();
@@ -631,7 +630,7 @@ void UI_BIOSEMI2BDFPLUSwindow::SelectFileButton()
                   {
                     break;
                   }
-                  if(!strcmp(annot_ptr->annotation, triggerlabel[j]))
+                  if(!strcmp(annot_ptr->description, triggerlabel[j]))
                   {
                     snprintf(str, 2048, "%.4f", (double)((datarecords * EDFLIB_TIME_DIMENSION) + ((long long)i * status_sample_duration) - annot_ptr->onset) / (double)EDFLIB_TIME_DIMENSION);
                     str[15] = 0;
@@ -659,11 +658,11 @@ void UI_BIOSEMI2BDFPLUSwindow::SelectFileButton()
 
     if(annot_ptr->duration[0] == 0)
     {
-      edfwrite_annotation_utf8(hdl_out, annot_ptr->onset / 1000LL, -1LL, annot_ptr->annotation);
+      edfwrite_annotation_utf8(hdl_out, annot_ptr->onset / 1000LL, -1LL, annot_ptr->description);
     }
     else
     {
-      edfwrite_annotation_utf8(hdl_out, annot_ptr->onset / 1000LL, (long long)(atof(annot_ptr->duration) * 10000.0), annot_ptr->annotation);
+      edfwrite_annotation_utf8(hdl_out, annot_ptr->onset / 1000LL, (long long)(atof(annot_ptr->duration) * 10000.0), annot_ptr->description);
     }
   }
 

@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2007 - 2019 Teunis van Beelen
+* Copyright (C) 2007 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -130,6 +129,7 @@ SpecialButton  *BgColorButton,
                *FrColorButton,
                *AnnotMkrButton,
                *AnnotDurationButton,
+               *AnnotDurationSelectedButton,
                *slabel2_1,
                *slabel2_3;
 
@@ -150,6 +150,7 @@ QLabel         *label1,
                *label12_3,
                *label13,
                *label14,
+               *label16,
                *label4_1,
                *label4_2,
                *label4_3,
@@ -163,6 +164,7 @@ QLabel         *label1,
                *label4_11,
                *label4_12,
                *label4_13,
+               *label4_14,
                *label2_2,
                *label2_4,
                *label1_3,
@@ -191,6 +193,7 @@ QCheckBox      *checkbox1,
                *checkbox3_1,
                *checkbox4,
                *checkbox5,
+               *checkbox16,
                *checkbox4_1,
                *checkbox4_2,
                *checkbox4_3,
@@ -207,7 +210,8 @@ QRadioButton   *radiobutton1,
                *radiobutton2,
                *radiobutton3;
 
-QLineEdit      *lineEdit3_1;
+QLineEdit      *lineEdit3_1,
+               *lineedit4_1;
 
 QGroupBox      *groupbox1;
 
@@ -227,6 +231,7 @@ void Crh2ColorButtonClicked(SpecialButton *);
 void FrColorButtonClicked(SpecialButton *);
 void AnnotMkrButtonClicked(SpecialButton *);
 void AnnotDurationButtonClicked(SpecialButton *);
+void AnnotDurationSelectedButtonClicked(SpecialButton *);
 void checkbox1Clicked(int);
 void checkbox2Clicked(int);
 void checkbox2_1Clicked(int);
@@ -234,6 +239,7 @@ void checkbox2_2Clicked(int);
 void checkbox3Clicked(int);
 void checkbox4Clicked(int);
 void checkbox5Clicked(int);
+void checkbox16Clicked(int);
 void checkbox3_1Clicked(int);
 void checkbox4_1Clicked(int);
 void checkbox4_2Clicked(int);
@@ -265,7 +271,7 @@ void loadColorSchema_NK();
 void loadColorSchema_Dark();
 void loadColorSchema_blue_gray();
 void dspinbox4_4ValueChanged(double);
-
+void lineedit4_1_changed(const QString);
 };
 
 

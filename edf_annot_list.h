@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2010 - 2019 Teunis van Beelen
+* Copyright (C) 2010 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -42,11 +41,11 @@ extern "C" {
 #endif
 
 struct annotationblock{
-        int file_num;
+        void *edfhdr;
         long long onset;
         char duration[16];
         long long long_duration;
-        char annotation[MAX_ANNOTATION_LEN_II + 1];
+        char description[MAX_ANNOTATION_LEN_II + 1];
         int modified;
         int x_pos;
         int selected;
@@ -54,6 +53,7 @@ struct annotationblock{
         int hided;
         int hided_in_list;
         unsigned int ident;
+        int selected_in_dock;
        };
 
 struct annotation_list{
@@ -81,6 +81,7 @@ int edfplus_annotation_get_max_annotation_strlen(struct annotation_list *);
 void edfplus_annotation_copy_list(struct annotation_list *, struct annotation_list *);
 long long edfplus_annotation_get_long_from_number(const char *);
 int edfplus_annotation_get_index_at(struct annotation_list *, long long, int);
+void edfplus_annotation_cancel_all_selected_in_dock(struct annotation_list *);
 
 #ifdef __cplusplus
 } /* extern "C" */

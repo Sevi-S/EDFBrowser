@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2007 - 2019 Teunis van Beelen
+* Copyright (C) 2007 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -30,6 +29,8 @@
 
 #include "signal_chooser.h"
 
+
+
 UI_SignalChooser::UI_SignalChooser(QWidget *w_parent, int job, int *sgnl_nr)
 {
   task = job;
@@ -42,8 +43,8 @@ UI_SignalChooser::UI_SignalChooser(QWidget *w_parent, int job, int *sgnl_nr)
 
   if(task == 3)
   {
-    signalchooser_dialog->setMinimumSize(265, 420);
-    signalchooser_dialog->setMaximumSize(265, 420);
+    signalchooser_dialog->setMinimumSize(435, 420);
+    signalchooser_dialog->setMaximumSize(435, 420);
     signalchooser_dialog->setWindowTitle("Organize signals");
   }
   else
@@ -56,14 +57,17 @@ UI_SignalChooser::UI_SignalChooser(QWidget *w_parent, int job, int *sgnl_nr)
   signalchooser_dialog->setAttribute(Qt::WA_DeleteOnClose, true);
 
   list = new QListWidget(signalchooser_dialog);
-  list->setGeometry(10, 10, 130, 365);
-  list->setSelectionBehavior(QAbstractItemView::SelectRows);
   if(task == 3)
   {
+    list->setGeometry(10, 10, 300, 365);
+    list->setSelectionBehavior(QAbstractItemView::SelectRows);
     list->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    list->setToolTip("Double-click on an item to edit properties");
   }
   else
   {
+    list->setGeometry(10, 10, 130, 365);
+    list->setSelectionBehavior(QAbstractItemView::SelectRows);
     list->setSelectionMode(QAbstractItemView::SingleSelection);
   }
 
@@ -73,20 +77,24 @@ UI_SignalChooser::UI_SignalChooser(QWidget *w_parent, int job, int *sgnl_nr)
 
   if(task == 3)
   {
+    EditButton = new QPushButton(signalchooser_dialog);
+    EditButton->setGeometry(325, 140, 100, 25);
+    EditButton->setText("Edit");
+
     UpButton = new QPushButton(signalchooser_dialog);
-    UpButton->setGeometry(155, 180, 100, 25);
+    UpButton->setGeometry(325, 180, 100, 25);
     UpButton->setText("Up");
 
     DownButton = new QPushButton(signalchooser_dialog);
-    DownButton->setGeometry(155, 220, 100, 25);
+    DownButton->setGeometry(325, 220, 100, 25);
     DownButton->setText("Down");
 
     InvertButton = new QPushButton(signalchooser_dialog);
-    InvertButton->setGeometry(155, 260, 100, 25);
+    InvertButton->setGeometry(325, 260, 100, 25);
     InvertButton->setText("Invert");
 
     DeleteButton = new QPushButton(signalchooser_dialog);
-    DeleteButton->setGeometry(155, 300, 100, 25);
+    DeleteButton->setGeometry(325, 300, 100, 25);
     DeleteButton->setText("Remove");
   }
 
@@ -100,10 +108,13 @@ UI_SignalChooser::UI_SignalChooser(QWidget *w_parent, int job, int *sgnl_nr)
     {
       list->setCurrentRow(0);
 
+      QObject::connect(EditButton,   SIGNAL(clicked()), this, SLOT(signalEdit()));
       QObject::connect(UpButton,     SIGNAL(clicked()), this, SLOT(signalUp()));
       QObject::connect(DownButton,   SIGNAL(clicked()), this, SLOT(signalDown()));
       QObject::connect(InvertButton, SIGNAL(clicked()), this, SLOT(signalInvert()));
       QObject::connect(DeleteButton, SIGNAL(clicked()), this, SLOT(signalDelete()));
+
+      QObject::connect(list, SIGNAL(itemDoubleClicked(QListWidgetItem *)), this, SLOT(item_activated(QListWidgetItem *)));
     }
   }
   else
@@ -113,6 +124,8 @@ UI_SignalChooser::UI_SignalChooser(QWidget *w_parent, int job, int *sgnl_nr)
 
   signalchooser_dialog->exec();
 }
+
+
 
 void UI_SignalChooser::load_signalcomps(void)
 {
@@ -125,15 +138,33 @@ void UI_SignalChooser::load_signalcomps(void)
   for(i=0; i<mainwindow->signalcomps; i++)
   {
     item = new QListWidgetItem;
-    item->setText(mainwindow->signalcomp[i]->signallabel);
+    if(task == 3)
+    {
+      item->setText(QString(mainwindow->signalcomp[i]->signallabel) + QString("  Alias: ") + QString(mainwindow->signalcomp[i]->alias));
+    }
+    else
+    {
+      item->setText(mainwindow->signalcomp[i]->signallabel);
+    }
     item->setData(Qt::UserRole, QVariant(i));
     list->addItem(item);
   }
 }
 
+
+void UI_SignalChooser::item_activated(QListWidgetItem *item)
+{
+  mainwindow->maincurve->exec_sidemenu(item->data(Qt::UserRole).toInt());
+
+  load_signalcomps();
+
+  mainwindow->setup_viewbuf();
+}
+
+
 void UI_SignalChooser::call_sidemenu(QListWidgetItem *)
 {
-  int i;
+  int i, signal_nr2;
 
   if(task == 3) return;
 
@@ -163,6 +194,43 @@ void UI_SignalChooser::call_sidemenu(QListWidgetItem *)
     }
   }
 
+  if(task == 5)
+  {
+    signal_nr2 = list->currentRow();
+
+    if(mainwindow->signalcomp[signal_nr2]->ecg_filter != NULL)
+    {
+      signalchooser_dialog->close();
+      return;
+    }
+
+    if(mainwindow->signalcomp[signal_nr2]->edfhdr->edfparam[mainwindow->signalcomp[signal_nr2]->edfsignal[0]].sf_int < 30)
+    {
+      QMessageBox messagewindow(QMessageBox::Critical, "Error", "Samplefrequency must be at least 30Hz and must be an integer value.");
+      messagewindow.exec();
+      signalchooser_dialog->close();
+      return;
+    }
+
+    if(mainwindow->signalcomp[signal_nr2]->edfhdr->recording_len_sec < 30)
+    {
+      QMessageBox messagewindow(QMessageBox::Critical, "Error", "Recording length must be at least 30 seconds.");
+      messagewindow.exec();
+      signalchooser_dialog->close();
+      return;
+    }
+
+    for(i=0; i<MAXCDSADOCKS; i++)
+    {
+      if(mainwindow->cdsa_dock[i] == NULL)
+      {
+        UI_cdsa_window wndw(mainwindow, mainwindow->signalcomp[signal_nr2], i);
+
+        break;
+      }
+    }
+  }
+
   if(task == 2)
   {
     AdjustFilterSettings filtersettings(mainwindow->signalcomp[list->currentRow()], mainwindow->maincurve);
@@ -175,34 +243,28 @@ void UI_SignalChooser::call_sidemenu(QListWidgetItem *)
       *signal_nr = list->currentRow();
     }
   }
-  if (task == 5)
-  {
-      int p = 0;    // have to figure out using i instead of P
-      //if(i<MAXSPECTRUMDOCKS)
-      if(p<MAXSPECTRUMDOCKS)
-      {
-          //mainwindow->hilbertdock[list->currentRow()]->dock->show();
-
-          mainwindow->hilbertdock[p]->init(list->currentRow());
-            //init is initalize the dock -> inside spec_dock is show dock FINALLYYYYY!!!!
-          //hilberthist
-          printf("%s \n", "hilbert transofrm should happen soon");
-          //callRandomFunctionToGenerateGraphs -> became the init function :D
-
-
-          // all the docks are made at startup, and when files are loaded - they are just invisible
-
-            //create function inside hilbert_dock that will get info back from her
-      }
-      else{
-
-          QMessageBox messagewindow(QMessageBox::Critical, "Error", "Test12.\n"
-                                                                    "Close one first.");
-          messagewindow.exec();
-      }
-  }
 
   signalchooser_dialog->close();
+}
+
+
+void UI_SignalChooser::signalEdit()
+{
+  int n,
+      selected_signals[MAXSIGNALS];
+
+  n = get_selectionlist(selected_signals);
+
+  if(n < 1)
+  {
+    return;
+  }
+
+  mainwindow->maincurve->exec_sidemenu(selected_signals[0]);
+
+  load_signalcomps();
+
+  mainwindow->setup_viewbuf();
 }
 
 
@@ -318,6 +380,7 @@ int UI_SignalChooser::get_selectionlist(int *slist)
 
   QList<QListWidgetItem *> selectedlist;
 
+
   selectedlist = list->selectedItems();
 
   n = selectedlist.size();
@@ -390,6 +453,18 @@ void UI_SignalChooser::signalDelete()
         delete mainwindow->spectrumdialog[p - 1];
 
         mainwindow->spectrumdialog[p - 1] = NULL;
+      }
+    }
+
+    for(i=0; i<MAXCDSADOCKS; i++)
+    {
+      p = mainwindow->signalcomp[sigcomp_nr]->cdsa_dock[i];
+
+      if(p != 0)
+      {
+        delete mainwindow->cdsa_dock[p - 1];
+
+        mainwindow->cdsa_dock[p - 1] = NULL;
       }
     }
 
