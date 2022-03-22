@@ -1,4 +1,10 @@
+This project has the source code for EDFtremor, developed for the Neurophysiology department at the Academic Hospital Maastricht (Maastricht UMC+)
+The final executbales can be found at this link: placeholderlink.com
+
+
 Source code for the Bachlor Thesis of Severi Julius Suonenlahti at Maastricht Science Program, 2020
 This version of the project is used for tremor analysis, so you can compare gyroscopic and EMG .edf files
 
 The orignal source code is available at https://gitlab.com/Teuniz/EDFbrowser
+
+
