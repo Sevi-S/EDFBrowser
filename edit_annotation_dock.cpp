@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2009 - 2019 Teunis van Beelen
+* Copyright (C) 2009 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -31,118 +30,144 @@
 
 
 
-UI_AnnotationEditwindow::UI_AnnotationEditwindow(QWidget *w_parent)
+UI_AnnotationEditwindow::UI_AnnotationEditwindow(struct edfhdrblock *e_hdr, QWidget *w_parent)
 {
   mainwindow = (UI_Mainwindow *)w_parent;
 
-  file_num = 0;
+  edf_hdr = e_hdr;
 
-  dockedit = new QDockWidget("Annotation editor", w_parent);
-  dockedit->setAllowedAreas(Qt::TopDockWidgetArea | Qt::BottomDockWidgetArea);
-  dockedit->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable);
+  is_deleted = 0;
 
-  annot_edit_dialog = new QDialog;
-  annot_edit_dialog->setMinimumSize(640, 45);
+  dockedit = new QToolBar("Annotation editor", w_parent);
+  dockedit->setOrientation(Qt::Horizontal);
+  dockedit->setAllowedAreas(Qt::TopToolBarArea | Qt::BottomToolBarArea);
+  dockedit->setAttribute(Qt::WA_DeleteOnClose, true);
 
-  dockedit->setWidget(annot_edit_dialog);
+  annot_edit_frame = new QFrame;
+  annot_edit_frame->setMinimumSize(1050, 45);
 
-  descriptionLabel = new QLabel(annot_edit_dialog);
+  dockedit->addWidget(annot_edit_frame);
+
+  descriptionLabel = new QLabel(annot_edit_frame);
   descriptionLabel->setGeometry(10, 10, 78, 25);
   descriptionLabel->setText("Description");
 
-  annot_descript_lineEdit = new QLineEdit(annot_edit_dialog);
+  annot_descript_lineEdit = new QLineEdit(annot_edit_frame);
   annot_descript_lineEdit->setGeometry(90, 10, 150, 25);
 
-  onsetLabel = new QLabel(annot_edit_dialog);
+  completer = new QCompleter(annot_edit_frame);
+  completer->setCaseSensitivity(Qt::CaseInsensitive);
+  completer->setCompletionMode(QCompleter::PopupCompletion);
+  annot_descript_lineEdit->setCompleter(completer);
+
+  onsetLabel = new QLabel(annot_edit_frame);
   onsetLabel->setGeometry(250, 10, 48, 25);
   onsetLabel->setText("Onset");
 
-  posNegTimebox = new QComboBox(annot_edit_dialog);
+  posNegTimebox = new QComboBox(annot_edit_frame);
   posNegTimebox->setGeometry(300, 10, 35, 25);
   posNegTimebox->setEditable(false);
   posNegTimebox->addItem("+");
   posNegTimebox->addItem("-");
 
-  onset_daySpinbox = new QSpinBox(annot_edit_dialog);
+  onset_daySpinbox = new QSpinBox(annot_edit_frame);
   onset_daySpinbox->setGeometry(335, 10, 45, 25);
   onset_daySpinbox->setRange(0, 99);
   onset_daySpinbox->setSingleStep(1);
   onset_daySpinbox->setValue(0);
+  onset_daySpinbox->setToolTip("24-hour units relative to starttime");
 
-  onset_timeEdit = new QTimeEdit(annot_edit_dialog);
+  onset_timeEdit = new QTimeEdit(annot_edit_frame);
   onset_timeEdit->setGeometry(380, 10, 100, 25);
   onset_timeEdit->setDisplayFormat("hh:mm:ss.zzz");
   onset_timeEdit->setMinimumTime(QTime(-1, 0, 0, 0));
+  onset_timeEdit->setToolTip("Onset time of the event (hh:mm:ss:mmm) relative to starttime");
 
-  durationLabel = new QLabel(annot_edit_dialog);
+  durationLabel = new QLabel(annot_edit_frame);
   durationLabel->setGeometry(490, 10, 58, 25);
   durationLabel->setText("Duration");
 
-  duration_spinbox = new QDoubleSpinBox(annot_edit_dialog);
+  duration_spinbox = new QDoubleSpinBox(annot_edit_frame);
   duration_spinbox->setGeometry(550, 10, 120, 25);
   duration_spinbox->setRange(-1.0, 10000.0);
   duration_spinbox->setSingleStep(1.0);
   duration_spinbox->setDecimals(3);
   duration_spinbox->setSuffix(" sec");
   duration_spinbox->setValue(-1.0);
+  duration_spinbox->setToolTip("Duration of the event (hh:mm:ss:mmm), -1 if not applicable)");
 
-  modifybutton = new QPushButton(annot_edit_dialog);
-  modifybutton->setGeometry(720, 10, 100, 25);
+  modifybutton = new QPushButton(annot_edit_frame);
+  modifybutton->setGeometry(700, 10, 100, 25);
   modifybutton->setText("Modify");
   modifybutton->setEnabled(false);
 
-  deletebutton = new QPushButton(annot_edit_dialog);
-  deletebutton->setGeometry(840, 10, 100, 25);
+  deletebutton = new QPushButton(annot_edit_frame);
+  deletebutton->setGeometry(820, 10, 100, 25);
   deletebutton->setText("Delete");
   deletebutton->setShortcut(QKeySequence::Delete);
   deletebutton->setEnabled(false);
 
-  createbutton = new QPushButton(annot_edit_dialog);
-  createbutton->setGeometry(960, 10, 100, 25);
+  createbutton = new QPushButton(annot_edit_frame);
+  createbutton->setGeometry(940, 10, 100, 25);
   createbutton->setText("Create");
+
+  mainwindow->annot_editor_active = 1;
+
+  mainwindow->show_annot_markers = 1;
+
+  if(mainwindow->annotationlist_backup==NULL)
+  {
+    mainwindow->annotationlist_backup = edfplus_annotation_create_list_copy(&mainwindow->edfheaderlist[0]->annot_list);
+  }
+
+  update_description_completer();
 
   QObject::connect(modifybutton, SIGNAL(clicked()),               this, SLOT(modifyButtonClicked()));
   QObject::connect(deletebutton, SIGNAL(clicked()),               this, SLOT(deleteButtonClicked()));
   QObject::connect(createbutton, SIGNAL(clicked()),               this, SLOT(createButtonClicked()));
-  QObject::connect(dockedit,     SIGNAL(visibilityChanged(bool)), this, SLOT(open_close_dock(bool)));
+  QObject::connect(dockedit,     SIGNAL(destroyed(QObject *)),    this, SLOT(dockedit_destroyed(QObject *)));
+
+  mainwindow->maincurve->arrowkeys_shortcuts_global_set_enabled(false);
 }
 
 
-void UI_AnnotationEditwindow::open_close_dock(bool visible)
+UI_AnnotationEditwindow::~UI_AnnotationEditwindow()
 {
-  if(mainwindow->files_open != 1)
+  mainwindow->maincurve->arrowkeys_shortcuts_global_set_enabled(true);
+
+  if(!is_deleted)
   {
-    dockedit->hide();
+    is_deleted = 1;
 
-    return;
-  }
-
-  if(visible==true)
-  {
-    mainwindow->annot_editor_active = 1;
-
-    mainwindow->show_annot_markers = 1;
-
-    if(mainwindow->annotationlist_backup==NULL)
-    {
-      mainwindow->annotationlist_backup = edfplus_annotation_create_list_copy(&mainwindow->edfheaderlist[0]->annot_list);
-    }
-  }
-  else
-  {
-    modifybutton->setEnabled(false);
-
-    deletebutton->setEnabled(false);
+    mainwindow->removeToolBar(dockedit);
 
     mainwindow->annot_editor_active = 0;
+
+    mainwindow->annotationEditDock = NULL;
   }
 }
 
+
+void UI_AnnotationEditwindow::dockedit_destroyed(QObject *)
+{
+  if(!is_deleted)
+  {
+    is_deleted = 1;
+
+    mainwindow->annot_editor_active = 0;
+
+    mainwindow->annotationEditDock = NULL;
+
+    delete this;
+  }
+}
 
 
 void UI_AnnotationEditwindow::modifyButtonClicked()
 {
-  struct annotation_list *annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  int file_num;
+
+  struct annotation_list *annot_list = &(edf_hdr->annot_list);
 
   struct annotationblock *annot = edfplus_annotation_get_item(annot_list, annot_num);
 
@@ -153,7 +178,7 @@ void UI_AnnotationEditwindow::modifyButtonClicked()
     annot->onset = -(annot->onset);
   }
 
-  annot->onset += mainwindow->edfheaderlist[file_num]->starttime_offset;
+  annot->onset += edf_hdr->starttime_offset;
 
   if(dblcmp(duration_spinbox->value(), 0.0) > 0)
   {
@@ -168,9 +193,9 @@ void UI_AnnotationEditwindow::modifyButtonClicked()
     annot->long_duration = 0LL;
   }
 
-  strncpy(annot->annotation, annot_descript_lineEdit->text().toUtf8().data(), MAX_ANNOTATION_LEN);
+  strncpy(annot->description, annot_descript_lineEdit->text().toUtf8().data(), MAX_ANNOTATION_LEN);
 
-  annot->annotation[MAX_ANNOTATION_LEN] = 0;
+  annot->description[MAX_ANNOTATION_LEN] = 0;
 
   annot->modified = 1;
 
@@ -178,7 +203,13 @@ void UI_AnnotationEditwindow::modifyButtonClicked()
 
   mainwindow->annotations_edited = 1;
 
-  mainwindow->annotations_dock[file_num]->updateList();
+  file_num = mainwindow->get_filenum((struct edfhdrblock *)(annot->edfhdr));
+  if(file_num >= 0)
+  {
+    mainwindow->annotations_dock[file_num]->updateList();
+  }
+
+  update_description_completer();
 
   mainwindow->maincurve->update();
 }
@@ -187,9 +218,9 @@ void UI_AnnotationEditwindow::modifyButtonClicked()
 
 void UI_AnnotationEditwindow::deleteButtonClicked()
 {
-  int sz;
+  int sz, file_num;
 
-  struct annotation_list *annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  struct annotation_list *annot_list = &(edf_hdr->annot_list);
 
   struct annotationblock *annot = edfplus_annotation_get_item(annot_list, annot_num);
 
@@ -212,7 +243,13 @@ void UI_AnnotationEditwindow::deleteButtonClicked()
 
   mainwindow->save_act->setEnabled(true);
 
-  mainwindow->annotations_dock[file_num]->updateList();
+  file_num = mainwindow->get_filenum((struct edfhdrblock *)(annot->edfhdr));
+  if(file_num >= 0)
+  {
+    mainwindow->annotations_dock[file_num]->updateList();
+  }
+
+  update_description_completer();
 
   mainwindow->maincurve->update();
 }
@@ -221,7 +258,9 @@ void UI_AnnotationEditwindow::deleteButtonClicked()
 
 void UI_AnnotationEditwindow::createButtonClicked()
 {
-  struct annotation_list *annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  int file_num;
+
+  struct annotation_list *annot_list = &(edf_hdr->annot_list);
 
   struct annotationblock annotation;
 
@@ -234,9 +273,9 @@ void UI_AnnotationEditwindow::createButtonClicked()
     annotation.onset = -(annotation.onset);
   }
 
-  annotation.onset += mainwindow->edfheaderlist[file_num]->starttime_offset;
+  annotation.onset += edf_hdr->starttime_offset;
 
-  annotation.file_num = file_num;
+  annotation.edfhdr = edf_hdr;
 
   if(dblcmp(duration_spinbox->value(), 0.0) > 0)
   {
@@ -251,9 +290,9 @@ void UI_AnnotationEditwindow::createButtonClicked()
     annotation.long_duration = 0LL;
   }
 
-  strncpy(annotation.annotation, annot_descript_lineEdit->text().toUtf8().data(), MAX_ANNOTATION_LEN);
+  strncpy(annotation.description, annot_descript_lineEdit->text().toUtf8().data(), MAX_ANNOTATION_LEN);
 
-  annotation.annotation[MAX_ANNOTATION_LEN] = 0;
+  annotation.description[MAX_ANNOTATION_LEN] = 0;
 
   annotation.modified = 1;
 
@@ -261,7 +300,13 @@ void UI_AnnotationEditwindow::createButtonClicked()
 
   mainwindow->annotations_edited = 1;
 
-  mainwindow->annotations_dock[file_num]->updateList();
+  file_num = mainwindow->get_filenum((struct edfhdrblock *)(annotation.edfhdr));
+  if(file_num >= 0)
+  {
+    mainwindow->annotations_dock[file_num]->updateList();
+  }
+
+  update_description_completer();
 
   mainwindow->maincurve->update();
 }
@@ -327,27 +372,27 @@ void UI_AnnotationEditwindow::annotEditSetDuration(long long duration)
 }
 
 
+void UI_AnnotationEditwindow::set_edf_header(struct edfhdrblock *e_hdr)
+{
+  edf_hdr = e_hdr;
+}
 
-void UI_AnnotationEditwindow::set_selected_annotation(int file_nr, int annot_nr)
+
+void UI_AnnotationEditwindow::set_selected_annotation(int annot_nr)
 {
   long long l_tmp;
 
   QTime ta;
 
-
-  file_num = file_nr;
-
   annot_num = annot_nr;
 
-  struct annotation_list *annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  struct annotation_list *annot_list = &(edf_hdr->annot_list);
 
   struct annotationblock *annot = edfplus_annotation_get_item(annot_list, annot_num);
 
-  annot = edfplus_annotation_get_item(annot_list, annot_num);
+  annot_descript_lineEdit->setText(QString::fromUtf8(annot->description));
 
-  annot_descript_lineEdit->setText(QString::fromUtf8(annot->annotation));
-
-  l_tmp = annot->onset - mainwindow->edfheaderlist[annot->file_num]->starttime_offset;
+  l_tmp = annot->onset - ((struct edfhdrblock *)(annot->edfhdr))->starttime_offset;
 
   if(l_tmp < 0LL)
   {
@@ -396,9 +441,7 @@ void UI_AnnotationEditwindow::set_selected_annotation(struct annotationblock *an
 
   QTime ta;
 
-  struct annotation_list *annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
-
-  file_num = annot->file_num;
+  struct annotation_list *annot_list = &(edf_hdr->annot_list);
 
   n = edfplus_annotation_get_index(annot_list, annot);
 
@@ -406,9 +449,9 @@ void UI_AnnotationEditwindow::set_selected_annotation(struct annotationblock *an
 
   annot_num = n;
 
-  annot_descript_lineEdit->setText(QString::fromUtf8(annot->annotation));
+  annot_descript_lineEdit->setText(QString::fromUtf8(annot->description));
 
-  l_tmp = annot->onset - mainwindow->edfheaderlist[annot->file_num]->starttime_offset;
+  l_tmp = annot->onset - ((struct edfhdrblock *)(annot->edfhdr))->starttime_offset;
 
   if(l_tmp < 0LL)
   {
@@ -449,7 +492,33 @@ void UI_AnnotationEditwindow::set_selected_annotation(struct annotationblock *an
 }
 
 
+void UI_AnnotationEditwindow::update_description_completer(void)
+{
+  int i;
 
+  QStringList string_list;
+
+  QStringListModel *model;
+
+  mainwindow->get_unique_annotations(edf_hdr);
+
+  for(i=0; i<MAX_UNIQUE_ANNOTATIONS; i++)
+  {
+    if(edf_hdr->unique_annotations_list[i][0] == 0)  break;
+
+    string_list << edf_hdr->unique_annotations_list[i];
+  }
+
+  model = (QStringListModel *)(completer->model());
+  if(model == NULL)
+  {
+    model = new QStringListModel(this);
+  }
+
+  model->setStringList(string_list);
+
+  completer->setModel(model);
+}
 
 
 

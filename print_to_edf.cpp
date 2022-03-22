@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2008 - 2019 Teunis van Beelen
+* Copyright (C) 2008 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -38,7 +37,6 @@ void print_screen_to_edf(UI_Mainwindow *mainwindow)
       records_written,
       signalcomps,
       duration_factor[MAXFILES],
-      temp=0,
       edfplus=0,
       tallen,
       annotationlist_nr=-1,
@@ -73,7 +71,8 @@ void print_screen_to_edf(UI_Mainwindow *mainwindow)
 
   double frequency,
          frequency2,
-         dig_value;
+         dig_value,
+         f_tmp=0;
 
   FILE *outputfile;
 
@@ -225,7 +224,7 @@ void print_screen_to_edf(UI_Mainwindow *mainwindow)
       break;
     }
 
-    duration_factor[signalcomp[i]->filenum] = duration / signalcomp[i]->edfhdr->long_data_record_duration;
+    duration_factor[mainwindow->get_filenum(signalcomp[i]->edfhdr)] = duration / signalcomp[i]->edfhdr->long_data_record_duration;
   }
 
   if((!integer_sf) && (!datrec_multiple_int))
@@ -918,7 +917,7 @@ void print_screen_to_edf(UI_Mainwindow *mainwindow)
     if(datrec_multiple_int)
     {
       fprintf(outputfile, "%-8i", signalcomp[i]->edfhdr->edfparam[signalcomp[i]->edfsignal[0]].smp_per_record
-       * duration_factor[signalcomp[i]->filenum]);
+       * duration_factor[mainwindow->get_filenum(signalcomp[i]->edfhdr)]);
     }
     else
     {
@@ -967,7 +966,7 @@ void print_screen_to_edf(UI_Mainwindow *mainwindow)
     {
       if(datrec_multiple_int)
       {
-        r = signalcomp[i]->edfhdr->edfparam[signalcomp[i]->edfsignal[0]].smp_per_record * duration_factor[signalcomp[i]->filenum];
+        r = signalcomp[i]->edfhdr->edfparam[signalcomp[i]->edfsignal[0]].smp_per_record * duration_factor[mainwindow->get_filenum(signalcomp[i]->edfhdr)];
       }
       else
       {
@@ -1002,7 +1001,7 @@ void print_screen_to_edf(UI_Mainwindow *mainwindow)
             {
               if(signalcomp[i]->edfhdr->edf)
               {
-                temp = *(((short *)(
+                f_tmp = *(((short *)(
                   viewbuf
                   + signalcomp[i]->viewbufoffset
                   + (signalcomp[i]->edfhdr->recordsize * (s2 / signalcomp[i]->edfhdr->edfparam[signalcomp[i]->edfsignal[j]].smp_per_record))
@@ -1010,24 +1009,24 @@ void print_screen_to_edf(UI_Mainwindow *mainwindow)
                   + (s2 % signalcomp[i]->edfhdr->edfparam[signalcomp[i]->edfsignal[j]].smp_per_record));
               }
 
-              temp += signalcomp[i]->edfhdr->edfparam[signalcomp[i]->edfsignal[j]].offset;
-              temp *= signalcomp[i]->factor[j];
+              f_tmp += signalcomp[i]->edfhdr->edfparam[signalcomp[i]->edfsignal[j]].offset;
+              f_tmp *= signalcomp[i]->factor[j];
 
-              temp -= signalcomp[i]->edfhdr->edfparam[signalcomp[i]->edfsignal[j]].offset;
+              f_tmp -= signalcomp[i]->edfhdr->edfparam[signalcomp[i]->edfsignal[j]].offset;
             }
             else
             {
-              temp = 0;
+              f_tmp = 0;
             }
 
-            dig_value += temp;
+            dig_value += f_tmp;
           }
 
           if(signalcomp[i]->spike_filter)
           {
             if(smpls_written[i]==signalcomp[i]->sample_start)
             {
-              if(mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime<=0)
+              if(signalcomp[i]->edfhdr->viewtime<=0)
               {
                 reset_spike_filter(signalcomp[i]->spike_filter);
               }
@@ -1044,7 +1043,7 @@ void print_screen_to_edf(UI_Mainwindow *mainwindow)
           {
             if(smpls_written[i]==signalcomp[i]->sample_start)
             {
-              if(mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime==0)
+              if(signalcomp[i]->edfhdr->viewtime==0)
               {
                 reset_filter(dig_value, signalcomp[i]->filter[p]);
               }
@@ -1062,7 +1061,7 @@ void print_screen_to_edf(UI_Mainwindow *mainwindow)
           {
             if(smpls_written[i]==signalcomp[i]->sample_start)
             {
-              if(mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime!=0)
+              if(signalcomp[i]->edfhdr->viewtime!=0)
               {
                 ravg_filter_restore_buf(signalcomp[i]->ravg_filter[p]);
               }
@@ -1075,7 +1074,7 @@ void print_screen_to_edf(UI_Mainwindow *mainwindow)
           {
             if(smpls_written[i]==signalcomp[i]->sample_start)
             {
-              if(mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime!=0)
+              if(signalcomp[i]->edfhdr->viewtime!=0)
               {
                 memcpy(signalcomp[i]->fidbuf[p], signalcomp[i]->fidbuf2[p], fid_run_bufsize(signalcomp[i]->fid_run[p]));
               }
@@ -1088,7 +1087,7 @@ void print_screen_to_edf(UI_Mainwindow *mainwindow)
           {
             if(smpls_written[i]==signalcomp[i]->sample_start)
             {
-              if(mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime!=0)
+              if(signalcomp[i]->edfhdr->viewtime!=0)
               {
                 fir_filter_restore_buf(signalcomp[i]->fir_filter);
               }
@@ -1101,7 +1100,7 @@ void print_screen_to_edf(UI_Mainwindow *mainwindow)
           {
             if(smpls_written[i]==signalcomp[i]->sample_start)
             {
-              if(mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime<=0)
+              if(signalcomp[i]->edfhdr->viewtime<=0)
               {
                 plif_reset_subtract_filter(signalcomp[i]->plif_ecg_filter, 0);
               }
@@ -1118,7 +1117,7 @@ void print_screen_to_edf(UI_Mainwindow *mainwindow)
           {
             if(smpls_written[i]==signalcomp[i]->sample_start)
             {
-              if(mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime != 0)
+              if(signalcomp[i]->edfhdr->viewtime != 0)
               {
                 ecg_filter_restore_buf(signalcomp[i]->ecg_filter);
               }
@@ -1133,7 +1132,7 @@ void print_screen_to_edf(UI_Mainwindow *mainwindow)
           {
             if(smpls_written[i]==signalcomp[i]->sample_start)
             {
-              if(mainwindow->edfheaderlist[signalcomp[i]->filenum]->viewtime != 0)
+              if(signalcomp[i]->edfhdr->viewtime != 0)
               {
                 zratio_filter_restore_buf(signalcomp[i]->zratio_filter);
               }
@@ -1279,7 +1278,7 @@ void print_screen_to_edf(UI_Mainwindow *mainwindow)
             fputc(20, outputfile);
             tallen++;
 
-            tallen += fprintf(outputfile, "%s", annot_ptr->annotation);
+            tallen += fprintf(outputfile, "%s", annot_ptr->description);
 
             fputc(20, outputfile);
             fputc(0, outputfile);

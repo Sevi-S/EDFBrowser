@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2010 - 2019 Teunis van Beelen
+* Copyright (C) 2010 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -37,10 +36,6 @@
 
 UI_SpectrumDockWindow::UI_SpectrumDockWindow(QWidget *w_parent)
 {
-    //printf("%s", "will this print when initialized");
-    //it will, idk why everything is called multiple times in the beginning - everything created, then the linked files ->
-    // need to not put formating stuff into "main" class - > put into sperate functions and initialize them later
-
   char str[1024];
 
   fft_data = NULL;
@@ -228,8 +223,16 @@ UI_SpectrumDockWindow::UI_SpectrumDockWindow(QWidget *w_parent)
   windowBox->addItem("Nuttall4c");
   windowBox->addItem("Hann");
   windowBox->addItem("HFT223D");
+  windowBox->addItem("HFT95");
+  windowBox->addItem("Kaiser2");
+  windowBox->addItem("Kaiser3");
+  windowBox->addItem("Kaiser4");
+  windowBox->addItem("Kaiser5");
   windowBox->setCurrentIndex(window_type);
   windowBox->setToolTip("Window");
+  windowBox->setCurrentIndex(mainwindow->spectrumdock_window);
+
+  window_type = mainwindow->spectrumdock_window;
 
   overlap_box = new QComboBox;
   overlap_box->setMinimumSize(70, 25);
@@ -238,6 +241,9 @@ UI_SpectrumDockWindow::UI_SpectrumDockWindow(QWidget *w_parent)
   overlap_box->addItem("Overlap: 67%");
   overlap_box->addItem("Overlap: 75%");
   overlap_box->addItem("Overlap: 80%");
+  overlap_box->setCurrentIndex(mainwindow->spectrumdock_overlap);
+
+  overlap = mainwindow->spectrumdock_overlap + 1;
 
   dftsz_label = new QLabel;
   dftsz_label->setText("Blocksize:");
@@ -360,6 +366,8 @@ void UI_SpectrumDockWindow::windowBox_changed(int idx)
 
   window_type = idx;
 
+  mainwindow->spectrumdock_window = idx;
+
   init_maxvalue = 1;
 
   update_curve();
@@ -386,6 +394,8 @@ void UI_SpectrumDockWindow::overlap_box_changed(int idx)
 
   if(overlap == (idx + 1))  return;
 
+  mainwindow->spectrumdock_overlap = idx;
+
   overlap = idx + 1;
 
   init_maxvalue = 1;
@@ -394,14 +404,86 @@ void UI_SpectrumDockWindow::overlap_box_changed(int idx)
 }
 
 
-void UI_SpectrumDockWindow::open_close_dock(bool)
+void UI_SpectrumDockWindow::open_close_dock(bool visible)
 {
-  //if(mainwindow->files_open != 1 || signal_nr < 0)
-  if(mainwindow->files_open < 0 || signal_nr < 0)
+  char str[512]={""};
+
+  if(mainwindow->files_open != 1 || signal_nr < 0)
   {
     dock->hide();
 
     return;
+  }
+
+  if(visible)
+  {
+    overlap_box->setCurrentIndex(mainwindow->spectrumdock_overlap);
+
+    overlap = mainwindow->spectrumdock_overlap + 1;
+
+    windowBox->setCurrentIndex(mainwindow->spectrumdock_window);
+
+    window_type = mainwindow->spectrumdock_window;
+
+    if(mainwindow->spectrumdock_sqrt)
+    {
+      sqrtButton->setChecked(true);
+
+      snprintf(str, 512, "Amplitude Spectrum %.64s", signallabel);
+
+      dock->setWindowTitle(str);
+
+      if(mainwindow->spectrumdock_vlog)
+      {
+        snprintf(str, 512, "log10(%s)", physdimension);
+        curve1->setV_label(str);
+      }
+      else
+      {
+        curve1->setV_label(physdimension);
+      }
+    }
+    else
+    {
+      sqrtButton->setChecked(false);
+
+      snprintf(str, 512, "Power Spectrum %.64s", signallabel);
+
+      dock->setWindowTitle(str);
+
+      if(mainwindow->spectrumdock_vlog)
+      {
+        snprintf(str, 512, "log((%s)^2/Hz)", physdimension);
+      }
+      else
+      {
+        snprintf(str, 512, "(%s)^2/Hz", physdimension);
+      }
+
+      curve1->setV_label(str);
+    }
+
+    if(mainwindow->spectrumdock_vlog)
+    {
+      vlogButton->setChecked(true);
+
+      log_minslider->setVisible(true);
+    }
+    else
+    {
+      vlogButton->setChecked(false);
+
+      log_minslider->setVisible(false);
+    }
+
+    if(mainwindow->spectrumdock_colorbars)
+    {
+      colorBarButton->setCheckState(Qt::Checked);
+    }
+    else
+    {
+      colorBarButton->setCheckState(Qt::Unchecked);
+    }
   }
 }
 
@@ -487,7 +569,22 @@ void UI_SpectrumDockWindow::update_flywheel(int new_value)
 }
 
 
-
+void UI_SpectrumDockWindow::setdashboard()
+{
+  if(dashboard)
+  {
+    dashboard = 0;
+    hlayout1->removeWidget(curve1);
+    dock->setWidget(curve1);
+    dock->setMinimumHeight(300);
+  }
+  else
+  {
+    dashboard = 1;
+    hlayout1->addWidget(curve1, 100);
+    dock->setWidget(SpectrumDialog);
+  }
+}
 
 
 void UI_SpectrumDockWindow::print_to_txt()
@@ -548,6 +645,16 @@ void UI_SpectrumDockWindow::print_to_txt()
     case FFT_WNDW_TYPE_HANN                  : fprintf(outputfile, "FFT window function: Hann\n");
             break;
     case FFT_WNDW_TYPE_HFT223D               : fprintf(outputfile, "FFT window function: HFT223D\n");
+            break;
+    case FFT_WNDW_TYPE_HFT95                 : fprintf(outputfile, "FFT window function: HFT95\n");
+            break;
+    case FFT_WNDW_TYPE_KAISER_A2             : fprintf(outputfile, "FFT window function: Kaiser2\n");
+            break;
+    case FFT_WNDW_TYPE_KAISER_A3             : fprintf(outputfile, "FFT window function: Kaiser3\n");
+            break;
+    case FFT_WNDW_TYPE_KAISER_A4             : fprintf(outputfile, "FFT window function: Kaiser4\n");
+            break;
+    case FFT_WNDW_TYPE_KAISER_A5             : fprintf(outputfile, "FFT window function: Kaiser5\n");
             break;
   }
   switch(overlap)
@@ -1072,7 +1179,7 @@ void UI_SpectrumDockWindow::update_curve()
     {
       if(s==signalcomp->sample_start)
       {
-        if(mainwindow->edfheaderlist[signalcomp->filenum]->viewtime<=0)
+        if(signalcomp->edfhdr->viewtime<=0)
         {
           plif_reset_subtract_filter(signalcomp->plif_ecg_filter, 0);
         }
@@ -1502,36 +1609,24 @@ void UI_SpectrumDockWindow::update_curve()
 }
 
 
-void UI_SpectrumDockWindow::setdashboard() {
-    if (dashboard) {
-        dashboard = 0;
-        hlayout1->removeWidget(curve1);
-        dock->setWidget(curve1);
-        dock->setMinimumHeight(300);
-    } else {
-        dashboard = 1;
-        hlayout1->addWidget(curve1, 100);
-        dock->setWidget(SpectrumDialog);
-    }
-}
 
 UI_SpectrumDockWindow::~UI_SpectrumDockWindow()
 {
- free(buf1);
- buf1 = NULL;
- free(buf2);
- buf2 = NULL;
- free(buf3);
- buf3 = NULL;
- free(buf4);
- buf4 = NULL;
- free(buf5);
- buf5 = NULL;
+  free(buf1);
+  buf1 = NULL;
+  free(buf2);
+  buf2 = NULL;
+  free(buf3);
+  buf3 = NULL;
+  free(buf4);
+  buf4 = NULL;
+  free(buf5);
+  buf5 = NULL;
 
- free_fft_wrap(fft_data);
- fft_data = NULL;
+  free_fft_wrap(fft_data);
+  fft_data = NULL;
 
- delete SpectrumDialog;
+  delete SpectrumDialog;
 }
 
 

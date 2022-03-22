@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2010 - 2019 Teunis van Beelen
+* Copyright (C) 2010 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -1224,6 +1223,15 @@ void UI_headerEditorWindow::save_hdr()
     {
       fputc(' ', file);
     }
+  }
+
+  fseeko(file, 244LL, SEEK_SET);
+  fread(scratchpad, 8, 1, file);
+  scratchpad[8] = 0;
+  if(!strcmp(scratchpad, "0       "))
+  {
+    fseeko(file, 244LL, SEEK_SET);
+    fputc('1', file);              /* fix for broken EDF+ files from Physionet */
   }
 
   for(i=0; i<edfsignals; i++)

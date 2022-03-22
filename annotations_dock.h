@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2007 - 2019 Teunis van Beelen
+* Copyright (C) 2007 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -43,6 +42,7 @@
 #include <QPalette>
 #include <QTime>
 #include <QTimeEdit>
+#include <QTimer>
 #include <QString>
 #include <QDialog>
 #include <QVBoxLayout>
@@ -65,6 +65,7 @@
 #include "edf_annot_list.h"
 #include "annotlist_filter_dialog.h"
 #include "statistics_dialog.h"
+#include "hrv_dock.h"
 
 
 class UI_Mainwindow;
@@ -77,7 +78,7 @@ class UI_Annotationswindow : public QObject
   Q_OBJECT
 
 public:
-  UI_Annotationswindow(int, QWidget *parent);
+  UI_Annotationswindow(struct edfhdrblock *e_hdr, QWidget *parent);
 
   UI_Mainwindow *mainwindow;
 
@@ -89,12 +90,13 @@ public:
 
 private:
 
-  int file_num,
-      relative,
+  int relative,
       selected,
       invert_filter,
       hide_nk_triggers,
       hide_bs_triggers;
+
+  struct edfhdrblock *edf_hdr;
 
   QDialog *dialog1;
 
@@ -107,7 +109,7 @@ private:
 
   QLabel *label1;
 
-  QLineEdit *lineedit1;
+  QLineEdit *search_line_edit;
 
   QPushButton *more_button;
 
@@ -123,7 +125,10 @@ private:
           *unhide_all_NK_triggers_act,
           *unhide_all_BS_triggers_act,
           *filt_ival_time_act,
-          *show_stats_act;
+          *show_stats_act,
+          *show_heart_rate_act;
+
+  QTimer *delayed_list_filter_update_timer;
 
 private slots:
 
@@ -146,6 +151,8 @@ private slots:
   void unhide_all_BS_triggers(bool);
   void filt_ival_time(bool);
   void show_stats(bool);
+  void show_heart_rate(bool);
+  void delayed_list_filter_update();
 };
 
 

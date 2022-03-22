@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2007 - 2019 Teunis van Beelen
+* Copyright (C) 2007 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -41,11 +40,17 @@ UI_OptionsDialog::UI_OptionsDialog(QWidget *w_parent)
 
   optionsdialog = new QDialog(w_parent);
 
-  if(QApplication::desktop()->screenGeometry().height() < 900)
+#if QT_VERSION > 0x050C00
+  if(QGuiApplication::primaryScreen()->geometry().height() < 940)
   {
     showminimized = 1;
   }
-
+#else
+  if(QApplication::desktop()->screenGeometry().height() < 940)
+  {
+    showminimized = 1;
+  }
+#endif
   if(showminimized)
   {
     optionsdialog->setMinimumSize(480, 500);
@@ -60,8 +65,8 @@ UI_OptionsDialog::UI_OptionsDialog(QWidget *w_parent)
   }
   else
   {
-    optionsdialog->setMinimumSize(440, 820);
-    optionsdialog->setMaximumSize(440, 820);
+    optionsdialog->setMinimumSize(440, 860);
+    optionsdialog->setMaximumSize(440, 860);
   }
   optionsdialog->setWindowTitle("Settings");
   optionsdialog->setModal(true);
@@ -124,12 +129,30 @@ UI_OptionsDialog::UI_OptionsDialog(QWidget *w_parent)
   SigColorButton->setGeometry(240, 170, 60, 15);
   SigColorButton->setColor((Qt::GlobalColor)mainwindow->maincurve->signal_color);
 
+  label16 = new QLabel(tab1);
+  label16->setGeometry(20, 195, 200, 25);
+  label16->setText("Vary signal colors");
+  label16->setToolTip("When adding signals to the screen, vary the traces' color");
+
+  checkbox16 = new QCheckBox(tab1);
+  checkbox16->setGeometry(200, 198, 20, 20);
+  checkbox16->setTristate(false);
+  checkbox16->setToolTip("When adding signals to the screen, vary the traces' color");
+  if(mainwindow->use_diverse_signal_colors)
+  {
+    checkbox16->setCheckState(Qt::Checked);
+  }
+  else
+  {
+    checkbox16->setCheckState(Qt::Unchecked);
+  }
+
   label7 = new QLabel(tab1);
-  label7->setGeometry(20, 195, 200, 25);
+  label7->setGeometry(20, 225, 200, 25);
   label7->setText("Baseline color");
 
   checkbox3 = new QCheckBox(tab1);
-  checkbox3->setGeometry(200, 198, 20, 20);
+  checkbox3->setGeometry(200, 228, 20, 20);
   checkbox3->setTristate(false);
   if(mainwindow->show_baselines)
   {
@@ -141,39 +164,39 @@ UI_OptionsDialog::UI_OptionsDialog(QWidget *w_parent)
   }
 
   BaseColorButton = new SpecialButton(tab1);
-  BaseColorButton->setGeometry(240, 200, 60, 15);
+  BaseColorButton->setGeometry(240, 230, 60, 15);
   BaseColorButton->setColor(mainwindow->maincurve->baseline_color);
 
   label8 = new QLabel(tab1);
-  label8->setGeometry(20, 225, 200, 25);
-  label8->setText("Crosshair color");
+  label8->setGeometry(20, 255, 200, 25);
+  label8->setText("First Crosshair color");
 
   Crh1ColorButton = new SpecialButton(tab1);
-  Crh1ColorButton->setGeometry(240, 230, 60, 15);
+  Crh1ColorButton->setGeometry(240, 260, 60, 15);
   Crh1ColorButton->setColor((Qt::GlobalColor)mainwindow->maincurve->crosshair_1.color);
 
   label9 = new QLabel(tab1);
-  label9->setGeometry(20, 255, 200, 25);
-  label9->setText("2th Crosshair color");
+  label9->setGeometry(20, 285, 200, 25);
+  label9->setText("Second Crosshair color");
 
   Crh2ColorButton = new SpecialButton(tab1);
-  Crh2ColorButton->setGeometry(240, 260, 60, 15);
+  Crh2ColorButton->setGeometry(240, 290, 60, 15);
   Crh2ColorButton->setColor((Qt::GlobalColor)mainwindow->maincurve->crosshair_2.color);
 
   label10 = new QLabel(tab1);
-  label10->setGeometry(20, 285, 200, 25);
+  label10->setGeometry(20, 315, 200, 25);
   label10->setText("Floating ruler color");
 
   FrColorButton = new SpecialButton(tab1);
-  FrColorButton->setGeometry(240, 290, 60, 15);
+  FrColorButton->setGeometry(240, 320, 60, 15);
   FrColorButton->setColor((Qt::GlobalColor)mainwindow->maincurve->floating_ruler_color);
 
   label12 = new QLabel(tab1);
-  label12->setGeometry(20, 315, 200, 25);
+  label12->setGeometry(20, 345, 200, 25);
   label12->setText("Annotation marker");
 
   checkbox2 = new QCheckBox(tab1);
-  checkbox2->setGeometry(200, 318, 20, 20);
+  checkbox2->setGeometry(200, 348, 20, 20);
   checkbox2->setTristate(false);
   if(mainwindow->show_annot_markers)
   {
@@ -185,15 +208,15 @@ UI_OptionsDialog::UI_OptionsDialog(QWidget *w_parent)
   }
 
   AnnotMkrButton = new SpecialButton(tab1);
-  AnnotMkrButton->setGeometry(240, 320, 60, 15);
+  AnnotMkrButton->setGeometry(240, 350, 60, 15);
   AnnotMkrButton->setColor(mainwindow->maincurve->annot_marker_color);
 
   label12_2 = new QLabel(tab1);
-  label12_2->setGeometry(20, 345, 200, 25);
+  label12_2->setGeometry(20, 375, 200, 25);
   label12_2->setText("Show duration at marker");
 
   checkbox2_1 = new QCheckBox(tab1);
-  checkbox2_1->setGeometry(200, 348, 20, 20);
+  checkbox2_1->setGeometry(200, 378, 20, 20);
   checkbox2_1->setTristate(false);
   if(mainwindow->annotations_show_duration)
   {
@@ -205,19 +228,27 @@ UI_OptionsDialog::UI_OptionsDialog(QWidget *w_parent)
   }
 
   label12_1 = new QLabel(tab1);
-  label12_1->setGeometry(20, 375, 200, 25);
+  label12_1->setGeometry(20, 405, 200, 25);
   label12_1->setText("Annotation duration background");
+  label12_1->setToolTip("The second color is used to indicate if it's selected");
 
   AnnotDurationButton = new SpecialButton(tab1);
-  AnnotDurationButton->setGeometry(240, 380, 60, 15);
+  AnnotDurationButton->setGeometry(240, 410, 60, 15);
   AnnotDurationButton->setColor(mainwindow->maincurve->annot_duration_color);
+  AnnotDurationButton->setToolTip("The second color is used to indicate if it's selected");
+
+  AnnotDurationSelectedButton = new SpecialButton(tab1);
+  AnnotDurationSelectedButton->setGeometry(340, 410, 60, 15);
+  AnnotDurationSelectedButton->setColor(mainwindow->maincurve->annot_duration_color_selected);
+  AnnotDurationSelectedButton->setToolTip("The second color is used to indicate if it's selected");
 
   label12_3 = new QLabel(tab1);
-  label12_3->setGeometry(20, 405, 200, 25);
+  label12_3->setGeometry(20, 435, 200, 25);
   label12_3->setText("Show only at screen bottom");
+  label12_3->setToolTip("Show the colored background only at the bottom of the screen");
 
   checkbox2_2 = new QCheckBox(tab1);
-  checkbox2_2->setGeometry(200, 408, 20, 20);
+  checkbox2_2->setGeometry(200, 438, 20, 20);
   checkbox2_2->setTristate(false);
   if(mainwindow->annotations_duration_background_type)
   {
@@ -227,13 +258,14 @@ UI_OptionsDialog::UI_OptionsDialog(QWidget *w_parent)
   {
     checkbox2_2->setCheckState(Qt::Unchecked);
   }
+  checkbox2_2->setToolTip("Show the colored background only at the bottom of the screen");
 
   label14 = new QLabel(tab1);
-  label14->setGeometry(20, 435, 200, 25);
+  label14->setGeometry(20, 465, 200, 25);
   label14->setText("Annotations: filter list only");
 
   checkbox5 = new QCheckBox(tab1);
-  checkbox5->setGeometry(200, 438, 20, 20);
+  checkbox5->setGeometry(200, 468, 20, 20);
   checkbox5->setTristate(false);
   checkbox5->setToolTip("Annotation filter affects the annotationlist only, not the annotation markers in the signal window");
   if(mainwindow->annot_filter->hide_in_list_only)
@@ -246,11 +278,11 @@ UI_OptionsDialog::UI_OptionsDialog(QWidget *w_parent)
   }
 
   label11 = new QLabel(tab1);
-  label11->setGeometry(20, 465, 200, 25);
+  label11->setGeometry(20, 495, 200, 25);
   label11->setText("Print in grayscale");
 
   checkbox1 = new QCheckBox(tab1);
-  checkbox1->setGeometry(200, 468, 20, 20);
+  checkbox1->setGeometry(200, 498, 20, 20);
   checkbox1->setTristate(false);
   if(mainwindow->maincurve->blackwhite_printing)
   {
@@ -262,11 +294,11 @@ UI_OptionsDialog::UI_OptionsDialog(QWidget *w_parent)
   }
 
   label13 = new QLabel(tab1);
-  label13->setGeometry(20, 495, 200, 25);
+  label13->setGeometry(20, 525, 200, 25);
   label13->setText("Clip signals to pane");
 
   checkbox4 = new QCheckBox(tab1);
-  checkbox4->setGeometry(200, 498, 20, 20);
+  checkbox4->setGeometry(200, 528, 20, 20);
   checkbox4->setTristate(false);
   if(mainwindow->clip_to_pane)
   {
@@ -278,26 +310,26 @@ UI_OptionsDialog::UI_OptionsDialog(QWidget *w_parent)
   }
 
   groupbox1 = new QGroupBox("Colorschema", tab1);
-  groupbox1->setGeometry(120, 540, 180, 195);
+  groupbox1->setGeometry(120, 570, 180, 195);
 
   colorSchema_Dark_Button = new QPushButton(tab1);
-  colorSchema_Dark_Button->setGeometry(150, 570, 120, 20);
+  colorSchema_Dark_Button->setGeometry(150, 600, 120, 20);
   colorSchema_Dark_Button->setText("\"Dark\"");
 
   colorSchema_NK_Button = new QPushButton(tab1);
-  colorSchema_NK_Button->setGeometry(150, 600, 120, 20);
+  colorSchema_NK_Button->setGeometry(150, 630, 120, 20);
   colorSchema_NK_Button->setText("\"NK\"");
 
   colorSchema_Blue_on_Gray_Button = new QPushButton(tab1);
-  colorSchema_Blue_on_Gray_Button->setGeometry(150, 630, 120, 20);
+  colorSchema_Blue_on_Gray_Button->setGeometry(150, 660, 120, 20);
   colorSchema_Blue_on_Gray_Button->setText("\"Blue on gray\"");
 
   saveColorSchemaButton = new QPushButton(tab1);
-  saveColorSchemaButton->setGeometry(150, 660, 120, 20);
+  saveColorSchemaButton->setGeometry(150, 690, 120, 20);
   saveColorSchemaButton->setText("Save");
 
   loadColorSchemaButton = new QPushButton(tab1);
-  loadColorSchemaButton->setGeometry(150, 690, 120, 20);
+  loadColorSchemaButton->setGeometry(150, 720, 120, 20);
   loadColorSchemaButton->setText("Load");
 
   QObject::connect(BgColorButton,           SIGNAL(clicked(SpecialButton *)), this, SLOT(BgColorButtonClicked(SpecialButton *)));
@@ -312,6 +344,7 @@ UI_OptionsDialog::UI_OptionsDialog(QWidget *w_parent)
   QObject::connect(FrColorButton,           SIGNAL(clicked(SpecialButton *)), this, SLOT(FrColorButtonClicked(SpecialButton *)));
   QObject::connect(AnnotMkrButton,          SIGNAL(clicked(SpecialButton *)), this, SLOT(AnnotMkrButtonClicked(SpecialButton *)));
   QObject::connect(AnnotDurationButton,     SIGNAL(clicked(SpecialButton *)), this, SLOT(AnnotDurationButtonClicked(SpecialButton *)));
+  QObject::connect(AnnotDurationSelectedButton,     SIGNAL(clicked(SpecialButton *)), this, SLOT(AnnotDurationSelectedButtonClicked(SpecialButton *)));
   QObject::connect(checkbox1,               SIGNAL(stateChanged(int)),        this, SLOT(checkbox1Clicked(int)));
   QObject::connect(checkbox2,               SIGNAL(stateChanged(int)),        this, SLOT(checkbox2Clicked(int)));
   QObject::connect(checkbox2_1,             SIGNAL(stateChanged(int)),        this, SLOT(checkbox2_1Clicked(int)));
@@ -319,6 +352,7 @@ UI_OptionsDialog::UI_OptionsDialog(QWidget *w_parent)
   QObject::connect(checkbox3,               SIGNAL(stateChanged(int)),        this, SLOT(checkbox3Clicked(int)));
   QObject::connect(checkbox4,               SIGNAL(stateChanged(int)),        this, SLOT(checkbox4Clicked(int)));
   QObject::connect(checkbox5,               SIGNAL(stateChanged(int)),        this, SLOT(checkbox5Clicked(int)));
+  QObject::connect(checkbox16,              SIGNAL(stateChanged(int)),        this, SLOT(checkbox16Clicked(int)));
   QObject::connect(saveColorSchemaButton,   SIGNAL(clicked()),                this, SLOT(saveColorSchemaButtonClicked()));
   QObject::connect(loadColorSchemaButton,   SIGNAL(clicked()),                this, SLOT(loadColorSchemaButtonClicked()));
   QObject::connect(colorSchema_Blue_on_Gray_Button, SIGNAL(clicked()),        this, SLOT(loadColorSchema_blue_gray()));
@@ -770,7 +804,18 @@ UI_OptionsDialog::UI_OptionsDialog(QWidget *w_parent)
 
   QObject::connect(checkbox4_7, SIGNAL(stateChanged(int)), this, SLOT(checkbox4_7Clicked(int)));
 
+  label4_14 = new QLabel(tab4);
+  label4_14->setGeometry(20, 615, 310, 25);
+  label4_14->setText("R-wave description string");
+
+  lineedit4_1 = new QLineEdit(tab4);
+  lineedit4_1->setGeometry(200, 615, 140, 25);
+  lineedit4_1->setMaxLength(31);
+  lineedit4_1->setText(mainwindow->ecg_qrs_rpeak_descr);
+
   tabholder->addTab(tab4, "Other");
+
+  QObject::connect(lineedit4_1, SIGNAL(textEdited(const QString)), this, SLOT(lineedit4_1_changed(const QString)));
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1123,7 +1168,7 @@ void UI_OptionsDialog::colorBarButtonClicked(SpecialButton *button)
 {
   int color;
 
-  UI_ColorMenuDialog colormenudialog(&color);
+  UI_ColorMenuDialog colormenudialog(&color, mainwindow);
 
   if(color < 0)  return;
 
@@ -1237,6 +1282,20 @@ void UI_OptionsDialog::checkbox5Clicked(int state)
   if(state==Qt::Unchecked)
   {
     mainwindow->annot_filter->hide_in_list_only = 0;
+  }
+}
+
+
+void UI_OptionsDialog::checkbox16Clicked(int state)
+{
+  if(state==Qt::Checked)
+  {
+    mainwindow->use_diverse_signal_colors = 1;
+  }
+
+  if(state==Qt::Unchecked)
+  {
+    mainwindow->use_diverse_signal_colors = 0;
   }
 }
 
@@ -1485,7 +1544,7 @@ void UI_OptionsDialog::SigColorButtonClicked(SpecialButton *)
 {
   int i, color;
 
-  UI_ColorMenuDialog colormenudialog(&color);
+  UI_ColorMenuDialog colormenudialog(&color, mainwindow);
 
   if(color < 0)  return;
 
@@ -1525,7 +1584,7 @@ void UI_OptionsDialog::Crh1ColorButtonClicked(SpecialButton *)
 {
   int color;
 
-  UI_ColorMenuDialog colormenudialog(&color);
+  UI_ColorMenuDialog colormenudialog(&color, mainwindow);
 
   if(color < 0)  return;
 
@@ -1542,7 +1601,7 @@ void UI_OptionsDialog::Crh2ColorButtonClicked(SpecialButton *)
 {
   int color;
 
-  UI_ColorMenuDialog colormenudialog(&color);
+  UI_ColorMenuDialog colormenudialog(&color, mainwindow);
 
   if(color < 0)  return;
 
@@ -1558,7 +1617,7 @@ void UI_OptionsDialog::FrColorButtonClicked(SpecialButton *)
 {
   int color;
 
-  UI_ColorMenuDialog colormenudialog(&color);
+  UI_ColorMenuDialog colormenudialog(&color, mainwindow);
 
   if(color < 0)  return;
 
@@ -1598,6 +1657,23 @@ void UI_OptionsDialog::AnnotDurationButtonClicked(SpecialButton *)
     mainwindow->maincurve->annot_duration_color = temp;
 
     AnnotDurationButton->setColor(mainwindow->maincurve->annot_duration_color);
+
+    mainwindow->maincurve->update();
+  }
+}
+
+
+void UI_OptionsDialog::AnnotDurationSelectedButtonClicked(SpecialButton *)
+{
+  QColor temp;
+
+  temp = QColorDialog::getColor(mainwindow->maincurve->annot_duration_color_selected, tab1, "Select Color", QColorDialog::ShowAlphaChannel);
+
+  if(temp.isValid())
+  {
+    mainwindow->maincurve->annot_duration_color_selected = temp;
+
+    AnnotDurationSelectedButton->setColor(mainwindow->maincurve->annot_duration_color_selected);
 
     mainwindow->maincurve->update();
   }
@@ -1721,6 +1797,17 @@ void UI_OptionsDialog::saveColorSchemaButtonClicked()
                   mainwindow->maincurve->annot_duration_color.blue(),
                   mainwindow->maincurve->annot_duration_color.alpha());
 
+  fprintf(colorfile, " <annot_duration_color_selected>\n"
+                  "  <red>%i</red>\n"
+                  "  <green>%i</green>\n"
+                  "  <blue>%i</blue>\n"
+                  "  <alpha>%i</alpha>\n"
+                  " </annot_duration_color_selected>\n",
+                  mainwindow->maincurve->annot_duration_color_selected.red(),
+                  mainwindow->maincurve->annot_duration_color_selected.green(),
+                  mainwindow->maincurve->annot_duration_color_selected.blue(),
+                  mainwindow->maincurve->annot_duration_color_selected.alpha());
+
   fprintf(colorfile, " <signal_color>%i</signal_color>\n",
                   mainwindow->maincurve->signal_color);
 
@@ -1804,6 +1891,8 @@ void UI_OptionsDialog::loadColorSchemaButtonClicked()
   mainwindow->get_rgbcolor_settings(xml_hdl, "annot_marker_color", 0, &mainwindow->maincurve->annot_marker_color);
 
   mainwindow->get_rgbcolor_settings(xml_hdl, "annot_duration_color", 0, &mainwindow->maincurve->annot_duration_color);
+
+  mainwindow->get_rgbcolor_settings(xml_hdl, "annot_duration_color_selected", 0, &mainwindow->maincurve->annot_duration_color_selected);
 
   if(xml_goto_nth_element_inside(xml_hdl, "signal_color", 0))
   {
@@ -1970,6 +2059,8 @@ void UI_OptionsDialog::update_interface(void)
 
   AnnotDurationButton->setColor(mainwindow->maincurve->annot_duration_color);
 
+  AnnotDurationSelectedButton->setColor(mainwindow->maincurve->annot_duration_color_selected);
+
   if(mainwindow->maincurve->blackwhite_printing)
   {
     checkbox1->setCheckState(Qt::Checked);
@@ -2043,6 +2134,11 @@ void UI_OptionsDialog::loadColorSchema_NK()
   mainwindow->maincurve->annot_duration_color.setBlue(127);
   mainwindow->maincurve->annot_duration_color.setAlpha(32);
 
+  mainwindow->maincurve->annot_duration_color_selected.setRed(127);
+  mainwindow->maincurve->annot_duration_color_selected.setGreen(0);
+  mainwindow->maincurve->annot_duration_color_selected.setBlue(127);
+  mainwindow->maincurve->annot_duration_color_selected.setAlpha(32);
+
   mainwindow->maincurve->signal_color = 2;
 
   mainwindow->maincurve->floating_ruler_color = 7;
@@ -2097,6 +2193,11 @@ void UI_OptionsDialog::loadColorSchema_Dark()
   mainwindow->maincurve->annot_duration_color.setGreen(127);
   mainwindow->maincurve->annot_duration_color.setBlue(127);
   mainwindow->maincurve->annot_duration_color.setAlpha(32);
+
+  mainwindow->maincurve->annot_duration_color_selected.setRed(127);
+  mainwindow->maincurve->annot_duration_color_selected.setGreen(0);
+  mainwindow->maincurve->annot_duration_color_selected.setBlue(127);
+  mainwindow->maincurve->annot_duration_color_selected.setAlpha(32);
 
   mainwindow->maincurve->signal_color = 12;
 
@@ -2167,6 +2268,11 @@ void UI_OptionsDialog::loadColorSchema_blue_gray()
   mainwindow->maincurve->annot_duration_color.setAlpha(32);
   AnnotDurationButton->setColor(mainwindow->maincurve->annot_duration_color);
 
+  mainwindow->maincurve->annot_duration_color_selected.setRed(127);
+  mainwindow->maincurve->annot_duration_color_selected.setGreen(0);
+  mainwindow->maincurve->annot_duration_color_selected.setBlue(127);
+  mainwindow->maincurve->annot_duration_color_selected.setAlpha(32);
+
   palette.setColor(QPalette::Text, mainwindow->maincurve->text_color);
   palette.setColor(QPalette::Base, mainwindow->maincurve->backgroundcolor);
 
@@ -2193,7 +2299,45 @@ void UI_OptionsDialog::loadColorSchema_blue_gray()
 }
 
 
+void UI_OptionsDialog::lineedit4_1_changed(const QString qstr)
+{
+  int i, j, len, cp;
 
+  char str[32];
+
+  strlcpy(str, qstr.toLatin1().data(), 32);
+  remove_leading_spaces(str);
+  remove_trailing_spaces(str);
+  len = strlen(str);
+
+  cp = lineedit4_1->cursorPosition();
+
+  for(i=0; i<len; i++)
+  {
+    if((str[i] < 32) || (str[i] > 126))
+    {
+      for(j=i; j<len; j++)
+      {
+        str[j] = str[j+1];
+      }
+
+      i--;
+    }
+  }
+
+  lineedit4_1->setText(str);
+
+  lineedit4_1->setCursorPosition(cp);
+
+  if(strlen(mainwindow->ecg_qrs_rpeak_descr))
+  {
+    strlcpy(mainwindow->ecg_qrs_rpeak_descr, str, 32);
+  }
+  else
+  {
+    strlcpy(mainwindow->ecg_qrs_rpeak_descr, "R-wave", 32);
+  }
+}
 
 
 

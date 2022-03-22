@@ -1,7 +1,7 @@
 /*
 *****************************************************************************
 *
-* Copyright (c) 2009 - 2019 Teunis van Beelen
+* Copyright (c) 2009 - 2020 Teunis van Beelen
 * All rights reserved.
 *
 * Email: teuniz@protonmail.com
@@ -42,11 +42,11 @@
 #include "edflib.h"
 
 
-#define EDFLIB_VERSION 116
-#define EDFLIB_MAXFILES 64
+#define EDFLIB_VERSION  (118)
+#define EDFLIB_MAXFILES  (64)
 
 
-#if defined(__APPLE__) || defined(__MACH__) || defined(__APPLE_CC__)
+#if defined(__APPLE__) || defined(__MACH__) || defined(__APPLE_CC__) || defined(__HAIKU__)
 
 #define fopeno fopen
 
@@ -79,15 +79,15 @@
 
 
 /* max size of annotationtext */
-#define EDFLIB_WRITE_MAX_ANNOTATION_LEN 40
+#define EDFLIB_WRITE_MAX_ANNOTATION_LEN  (40)
 
 /* bytes in datarecord for EDF annotations, must be an integer multiple of three and two */
-#define EDFLIB_ANNOTATION_BYTES 114
+#define EDFLIB_ANNOTATION_BYTES  (114)
 
 /* for writing only */
-#define EDFLIB_MAX_ANNOTATION_CHANNELS 64
+#define EDFLIB_MAX_ANNOTATION_CHANNELS  (64)
 
-#define EDFLIB_ANNOT_MEMBLOCKSZ 1000
+#define EDFLIB_ANNOT_MEMBLOCKSZ  (1000)
 
 
 struct edfparamblock{
@@ -249,7 +249,7 @@ int edflib_get_handle(int file_number)
 }
 
 
-int edfopen_file_readonly(const char *path, struct edf_hdr_struct *edfhdr, int read_annotations)
+int edfopen_file_readonly(const char *path, struct edf_hdr_struct *edfhdr, int read_annotations_mode)
 {
   int i, j,
       channel,
@@ -260,14 +260,14 @@ int edfopen_file_readonly(const char *path, struct edf_hdr_struct *edfhdr, int r
   struct edfhdrblock *hdr;
 
 
-  if(read_annotations<0)
+  if(read_annotations_mode<0)
   {
     edfhdr->filetype = EDFLIB_INVALID_READ_ANNOTS_VALUE;
 
     return -1;
   }
 
-  if(read_annotations>2)
+  if(read_annotations_mode>2)
   {
     edfhdr->filetype = EDFLIB_INVALID_READ_ANNOTS_VALUE;
 
@@ -408,25 +408,24 @@ int edfopen_file_readonly(const char *path, struct edf_hdr_struct *edfhdr, int r
     edflib_strlcpy(edfhdr->equipment, hdr->plus_equipment, 81);
     edflib_strlcpy(edfhdr->recording_additional, hdr->plus_recording_additional, 81);
 
-    if((read_annotations==EDFLIB_READ_ANNOTATIONS)||(read_annotations==EDFLIB_READ_ALL_ANNOTATIONS))
+    if(edflib_get_annotations(hdr, edfhdr->handle, read_annotations_mode))
     {
-      if(edflib_get_annotations(hdr, edfhdr->handle, read_annotations))
-      {
-        edfhdr->filetype = EDFLIB_FILE_CONTAINS_FORMAT_ERRORS;
+      edfhdr->filetype = EDFLIB_FILE_CONTAINS_FORMAT_ERRORS;
 
-        fclose(file);
+      fclose(file);
 
-        free(hdr->edfparam);
-        hdr->edfparam = NULL;
-        free(hdr);
-        hdr = NULL;
-        hdrlist[edfhdr->handle] = NULL;
-        free(annotationslist[edfhdr->handle]);
-        annotationslist[edfhdr->handle] = NULL;
+      free(hdr->edfparam);
+      hdr->edfparam = NULL;
+      free(hdr);
+      hdr = NULL;
+      hdrlist[edfhdr->handle] = NULL;
+      free(annotationslist[edfhdr->handle]);
+      annotationslist[edfhdr->handle] = NULL;
 
-        return -1;
-      }
+      return -1;
     }
+
+    edfhdr->starttime_subsecond = hdr->starttime_offset;
 
     edfhdr->annotations_in_file = hdr->annots_in_file;
   }
@@ -528,13 +527,13 @@ int edfclose_file(int handle)
       {
         annot2 = write_annotationslist[handle] + k;
 
-        p = edflib_fprint_ll_number_nonlocalized(hdr->file_hdl, (hdr->datarecords * hdr->long_data_record_duration) / EDFLIB_TIME_DIMENSION, 0, 1);
+        p = edflib_fprint_ll_number_nonlocalized(hdr->file_hdl, (hdr->datarecords * hdr->long_data_record_duration + hdr->starttime_offset) / EDFLIB_TIME_DIMENSION, 0, 1);
 
-        if(hdr->long_data_record_duration % EDFLIB_TIME_DIMENSION)
+        if((hdr->long_data_record_duration % EDFLIB_TIME_DIMENSION) || (hdr->starttime_offset))
         {
           fputc('.', hdr->file_hdl);
           p++;
-          p += edflib_fprint_ll_number_nonlocalized(hdr->file_hdl, (hdr->datarecords * hdr->long_data_record_duration) % EDFLIB_TIME_DIMENSION, 7, 0);
+          p += edflib_fprint_ll_number_nonlocalized(hdr->file_hdl, (hdr->datarecords * hdr->long_data_record_duration + hdr->starttime_offset) % EDFLIB_TIME_DIMENSION, 7, 0);
         }
         fputc(20, hdr->file_hdl);
         fputc(20, hdr->file_hdl);
@@ -586,6 +585,8 @@ int edfclose_file(int handle)
     {
       annot2 = write_annotationslist[handle] + k;
 
+      annot2->onset += hdr->starttime_offset / 1000LL;
+
       p = 0;
 
       if(j==0)  // first annotation signal
@@ -595,12 +596,12 @@ int edfclose_file(int handle)
           break;
         }
 
-        p += edflib_snprint_ll_number_nonlocalized(str, (datarecords * hdr->long_data_record_duration) / EDFLIB_TIME_DIMENSION, 0, 1, EDFLIB_ANNOTATION_BYTES * 2);
+        p += edflib_snprint_ll_number_nonlocalized(str, (datarecords * hdr->long_data_record_duration + hdr->starttime_offset) / EDFLIB_TIME_DIMENSION, 0, 1, EDFLIB_ANNOTATION_BYTES * 2);
 
-        if(hdr->long_data_record_duration % EDFLIB_TIME_DIMENSION)
+        if((hdr->long_data_record_duration % EDFLIB_TIME_DIMENSION) || (hdr->starttime_offset))
         {
           str[p++] = '.';
-          n = edflib_snprint_ll_number_nonlocalized(str + p, (datarecords * hdr->long_data_record_duration) % EDFLIB_TIME_DIMENSION, 7, 0, (EDFLIB_ANNOTATION_BYTES * 2) - p);
+          n = edflib_snprint_ll_number_nonlocalized(str + p, (datarecords * hdr->long_data_record_duration + hdr->starttime_offset) % EDFLIB_TIME_DIMENSION, 7, 0, (EDFLIB_ANNOTATION_BYTES * 2) - p);
           p += n;
         }
         str[p++] = 20;
@@ -2866,7 +2867,7 @@ int edflib_version(void)
 }
 
 
-static int edflib_get_annotations(struct edfhdrblock *edfhdr, int hdl, int read_annotations)
+static int edflib_get_annotations(struct edfhdrblock *edfhdr, int hdl, int read_annotations_mode)
 {
   int i, j, k, p, r=0, n,
       edfsignals,
@@ -3055,7 +3056,7 @@ static int edflib_get_annotations(struct edfhdrblock *edfhdr, int hdl, int read_
               }
               else
               {
-                if(time_tmp>=EDFLIB_TIME_DIMENSION)
+                if((time_tmp>=EDFLIB_TIME_DIMENSION) || (time_tmp<0LL))
                 {
                   error = 2;
                   goto END;
@@ -3063,6 +3064,11 @@ static int edflib_get_annotations(struct edfhdrblock *edfhdr, int hdl, int read_
                 else
                 {
                   edfhdr->starttime_offset = time_tmp;
+                  if(read_annotations_mode==EDFLIB_DO_NOT_READ_ANNOTATIONS)
+                  {
+                    error = 0;
+                    goto END_OUT;
+                  }
                 }
               }
               elapsedtime = time_tmp;
@@ -3158,9 +3164,11 @@ static int edflib_get_annotations(struct edfhdrblock *edfhdr, int hdl, int read_
 
                 new_annotation->onset = edflib_get_long_time(time_in_txt);
 
+                new_annotation->onset -= edfhdr->starttime_offset;
+
                 edfhdr->annots_in_file++;
 
-                if(read_annotations==EDFLIB_READ_ANNOTATIONS)
+                if(read_annotations_mode==EDFLIB_READ_ANNOTATIONS)
                 {
                   if(!(strncmp(new_annotation->annotation, "Recording ends", 14)))
                   {
@@ -3237,6 +3245,8 @@ static int edflib_get_annotations(struct edfhdrblock *edfhdr, int hdl, int read_
       }
     }
   }
+
+ END_OUT:
 
   free(cnv_buf);
   free(scratchpad);
@@ -3932,6 +3942,44 @@ int edf_set_micro_datarecord_duration(int handle, int duration)
   hdrlist[handle]->long_data_record_duration = (long long)duration * 10LL;
 
   hdrlist[handle]->data_record_duration = ((double)(hdrlist[handle]->long_data_record_duration)) / EDFLIB_TIME_DIMENSION;
+
+  return 0;
+}
+
+
+int edf_set_subsecond_starttime(int handle, int subsecond)
+{
+  if(handle<0)
+  {
+    return -1;
+  }
+
+  if(handle>=EDFLIB_MAXFILES)
+  {
+    return -1;
+  }
+
+  if(hdrlist[handle]==NULL)
+  {
+    return -1;
+  }
+
+  if(!(hdrlist[handle]->writemode))
+  {
+    return -1;
+  }
+
+  if(hdrlist[handle]->datarecords)
+  {
+    return -1;
+  }
+
+  if((subsecond < 0) || (subsecond > 9999999))
+  {
+    return -1;
+  }
+
+  hdrlist[handle]->starttime_offset = (long long)subsecond;
 
   return 0;
 }
@@ -6465,7 +6513,7 @@ int edfwrite_annotation_utf8(int handle, long long onset, long long duration, co
       break;
     }
 
-    if(list_annot->annotation[i] < 32)
+    if(((unsigned char *)(list_annot->annotation))[i] < 32)
     {
       list_annot->annotation[i] = '.';
     }
@@ -7263,11 +7311,11 @@ static int edflib_write_tal(struct edfhdrblock *hdr, FILE *file)
 
   char str[EDFLIB_ANNOTATION_BYTES * (EDFLIB_MAX_ANNOTATION_CHANNELS + 1)];
 
-  p = edflib_snprint_ll_number_nonlocalized(str, (hdr->datarecords * hdr->long_data_record_duration) / EDFLIB_TIME_DIMENSION, 0, 1, EDFLIB_ANNOTATION_BYTES * (EDFLIB_MAX_ANNOTATION_CHANNELS + 1));
-  if(hdr->long_data_record_duration % EDFLIB_TIME_DIMENSION)
+  p = edflib_snprint_ll_number_nonlocalized(str, (hdr->datarecords * hdr->long_data_record_duration + hdr->starttime_offset) / EDFLIB_TIME_DIMENSION, 0, 1, EDFLIB_ANNOTATION_BYTES * (EDFLIB_MAX_ANNOTATION_CHANNELS + 1));
+  if((hdr->long_data_record_duration % EDFLIB_TIME_DIMENSION) || (hdr->starttime_offset))
   {
     str[p++] = '.';
-    p += edflib_snprint_ll_number_nonlocalized(str + p, (hdr->datarecords * hdr->long_data_record_duration) % EDFLIB_TIME_DIMENSION, 7, 0, (EDFLIB_ANNOTATION_BYTES * (EDFLIB_MAX_ANNOTATION_CHANNELS + 1)) - p);
+    p += edflib_snprint_ll_number_nonlocalized(str + p, (hdr->datarecords * hdr->long_data_record_duration + hdr->starttime_offset) % EDFLIB_TIME_DIMENSION, 7, 0, (EDFLIB_ANNOTATION_BYTES * (EDFLIB_MAX_ANNOTATION_CHANNELS + 1)) - p);
   }
   str[p++] = 20;
   str[p++] = 20;

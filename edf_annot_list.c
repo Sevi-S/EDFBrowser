@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2010 - 2019 Teunis van Beelen
+* Copyright (C) 2010 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -112,7 +111,7 @@ int edfplus_annotation_cnt(struct annotation_list *list, struct annotationblock 
   {
     tmp_annot = &list->items[list->idx[i]];
 
-    if(!strcmp(tmp_annot->annotation, annot->annotation))
+    if(!strcmp(tmp_annot->description, annot->description))
     {
       if(!tmp_annot->hided_in_list)  n++;
     }
@@ -392,11 +391,11 @@ int edfplus_annotation_remove_duplicates(struct annotation_list *list)
   {
     annot = &list->items[list->idx[i]];
 
-    if(annot->file_num != list->items[list->idx[i + 1]].file_num)  continue;
+    if(annot->edfhdr != list->items[list->idx[i + 1]].edfhdr)  continue;
 
     if(annot->onset != list->items[list->idx[i + 1]].onset)  continue;
 
-    if(strcmp(annot->annotation, list->items[list->idx[i + 1]].annotation))  continue;
+    if(strcmp(annot->description, list->items[list->idx[i + 1]].description))  continue;
 
     if(strcmp(annot->duration, list->items[list->idx[i + 1]].duration))  continue;
 
@@ -411,6 +410,19 @@ int edfplus_annotation_remove_duplicates(struct annotation_list *list)
   }
 
   return dup_cnt;
+}
+
+
+void edfplus_annotation_cancel_all_selected_in_dock(struct annotation_list *list)
+{
+  int i;
+
+  if(list == NULL)  return;
+
+  for(i=0; i<(list->sz); i++)
+  {
+    list->items[i].selected_in_dock = 0;
+  }
 }
 
 
@@ -463,7 +475,7 @@ int edfplus_annotation_get_max_annotation_strlen(struct annotation_list *list)
       timestamp_decimals = len;
     }
 
-    len = strlen(annot->annotation);
+    len = strlen(annot->description);
 
     if(len>annot_descr_len)
     {

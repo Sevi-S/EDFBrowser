@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2007 - 2019 Teunis van Beelen
+* Copyright (C) 2007 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -37,14 +36,14 @@ static void process_events(void)
 }
 
 
-UI_Annotationswindow::UI_Annotationswindow(int file_number, QWidget *w_parent)
+UI_Annotationswindow::UI_Annotationswindow(struct edfhdrblock *e_hdr, QWidget *w_parent)
 {
   QPalette palette;
 
 
   mainwindow = (UI_Mainwindow *)w_parent;
 
-  file_num = file_number;
+  edf_hdr = e_hdr;
 
   docklist = new QDockWidget("Annotations", w_parent);
   docklist->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
@@ -75,8 +74,8 @@ UI_Annotationswindow::UI_Annotationswindow(int file_number, QWidget *w_parent)
   label1 = new QLabel;
   label1->setText(" Filter:");
 
-  lineedit1 = new QLineEdit;
-  lineedit1->setMaxLength(16);
+  search_line_edit = new QLineEdit;
+  search_line_edit->setMaxLength(16);
 
   checkbox2 = new QCheckBox("Inv.");
   checkbox2->setGeometry(2, 2, 10, 10);
@@ -105,6 +104,7 @@ UI_Annotationswindow::UI_Annotationswindow(int file_number, QWidget *w_parent)
   unhide_all_BS_triggers_act = new QAction("Unhide all Biosemi triggers", list);
   filt_ival_time_act = new QAction("Filter Interval Time", list);
   show_stats_act = new QAction("Heart Rate Variability", list);
+  show_heart_rate_act = new QAction("Heart Rate", list);
 
   list->setContextMenuPolicy(Qt::ActionsContextMenu);
   list->insertAction(NULL, show_between_act);
@@ -120,11 +120,12 @@ UI_Annotationswindow::UI_Annotationswindow(int file_number, QWidget *w_parent)
   list->insertAction(NULL, unhide_all_BS_triggers_act);
   list->insertAction(NULL, filt_ival_time_act);
   list->insertAction(NULL, show_stats_act);
+  list->insertAction(NULL, show_heart_rate_act);
 
   h_layout = new QHBoxLayout;
   h_layout->addWidget(checkbox1);
   h_layout->addWidget(label1);
-  h_layout->addWidget(lineedit1);
+  h_layout->addWidget(search_line_edit);
   h_layout->addWidget(checkbox2);
   h_layout->addWidget(more_button);
 
@@ -132,6 +133,9 @@ UI_Annotationswindow::UI_Annotationswindow(int file_number, QWidget *w_parent)
   v_layout->addLayout(h_layout);
   v_layout->addWidget(list);
   v_layout->setSpacing(1);
+
+  delayed_list_filter_update_timer = new QTimer(this);
+  delayed_list_filter_update_timer->setSingleShot(true);
 
   docklist->setWidget(dialog1);
 
@@ -155,7 +159,9 @@ UI_Annotationswindow::UI_Annotationswindow(int file_number, QWidget *w_parent)
   QObject::connect(unhide_all_BS_triggers_act, SIGNAL(triggered(bool)),                this, SLOT(unhide_all_BS_triggers(bool)));
   QObject::connect(filt_ival_time_act,         SIGNAL(triggered(bool)),                this, SLOT(filt_ival_time(bool)));
   QObject::connect(show_stats_act,             SIGNAL(triggered(bool)),                this, SLOT(show_stats(bool)));
-  QObject::connect(lineedit1,                  SIGNAL(textEdited(const QString)),      this, SLOT(filter_edited(const QString)));
+  QObject::connect(show_heart_rate_act,        SIGNAL(triggered(bool)),                this, SLOT(show_heart_rate(bool)));
+  QObject::connect(search_line_edit,           SIGNAL(textEdited(const QString)),      this, SLOT(filter_edited(const QString)));
+  QObject::connect(delayed_list_filter_update_timer, SIGNAL(timeout()),                this, SLOT(delayed_list_filter_update()));
 }
 
 
@@ -164,6 +170,83 @@ void UI_Annotationswindow::more_button_clicked(bool)
   QMessageBox messagewindow(QMessageBox::Information, "Info", "Right-click on an annotation for more options.");
   messagewindow.exec();
   return;
+}
+
+
+void UI_Annotationswindow::show_heart_rate(bool)
+{
+  int instance_num;
+
+  char str[4096]="";
+
+  struct annotation_list *annot_list;
+
+  struct annotationblock *annot;
+
+  if(mainwindow->files_open < 1)
+  {
+    return;
+  }
+
+  if(list->count() < 1)
+  {
+    return;
+  }
+
+  annot_list = &(edf_hdr->annot_list);
+  if(annot_list == NULL)
+  {
+    snprintf(str, 4096, "Nullpointer returned: file: %s line %i", __FILE__, __LINE__);
+    QMessageBox messagewindow(QMessageBox::Critical, "Error", str);
+    messagewindow.exec();
+    return;
+  }
+
+  annot = edfplus_annotation_get_item_visible_only(annot_list, list->currentRow());
+  if(annot == NULL)
+  {
+    snprintf(str, 4096, "Nullpointer returned: file: %s line %i", __FILE__, __LINE__);
+    QMessageBox messagewindow(QMessageBox::Critical, "Error", str);
+    messagewindow.exec();
+    return;
+  }
+
+  struct hrv_dock_param_struct dock_param;
+
+  memset(&dock_param, 0, sizeof(struct hrv_dock_param_struct));
+
+  for(instance_num=0; instance_num<MAXHRVDOCKS; instance_num++)
+  {
+    if(mainwindow->hrv_dock[instance_num] == NULL)
+    {
+      break;
+    }
+  }
+
+  if(instance_num == MAXHRVDOCKS)
+  {
+    return;
+  }
+
+  dock_param.instance_num = instance_num;
+
+  dock_param.edfhdr = edf_hdr;
+
+  dock_param.mainwindow = mainwindow;
+
+  strlcpy(dock_param.annot_name, annot->description, 32);
+
+  mainwindow->hrv_dock[instance_num] = new UI_hrv_dock(mainwindow, dock_param);
+
+  mainwindow->addToolBar(Qt::BottomToolBarArea, mainwindow->hrv_dock[instance_num]->hrv_dock);
+
+  mainwindow->insertToolBarBreak(mainwindow->hrv_dock[instance_num]->hrv_dock);
+
+  edf_hdr->hrv_dock[instance_num] = instance_num + 1;
+
+  QObject::connect(mainwindow, SIGNAL(annot_docklist_changed()), mainwindow->hrv_dock[instance_num], SLOT(update_curve()));
+
+  mainwindow->enable_hrv_stats_toolbar(annot->description, annot_list);
 }
 
 
@@ -192,7 +275,7 @@ void UI_Annotationswindow::show_stats(bool)
     return;
   }
 
-  annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  annot_list = &(edf_hdr->annot_list);
   if(annot_list == NULL)
   {
     snprintf(str, 4096, "Nullpointer returned: file: %s line %i", __FILE__, __LINE__);
@@ -238,11 +321,11 @@ void UI_Annotationswindow::filt_ival_time(bool)
     return;
   }
 
-  annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  annot_list = &(edf_hdr->annot_list);
 
   annot = edfplus_annotation_get_item_visible_only(annot_list, list->currentRow());
 
-  UI_AnnotFilterWindow filter_wndw(mainwindow, annot, mainwindow->annot_filter, file_num);
+  UI_AnnotFilterWindow filter_wndw(mainwindow, annot, mainwindow->annot_filter, edf_hdr);
 }
 
 
@@ -250,7 +333,7 @@ void UI_Annotationswindow::hide_all_NK_triggers(bool)
 {
   int i, sz;
 
-  struct annotation_list *annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  struct annotation_list *annot_list = &(edf_hdr->annot_list);
 
   struct annotationblock *annot;
 
@@ -280,7 +363,7 @@ void UI_Annotationswindow::hide_all_BS_triggers(bool)
 {
   int i, sz;
 
-  struct annotation_list *annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  struct annotation_list *annot_list = &(edf_hdr->annot_list);
 
   struct annotationblock *annot;
 
@@ -310,7 +393,7 @@ void UI_Annotationswindow::unhide_all_NK_triggers(bool)
 {
   int i, sz;
 
-  struct annotation_list *annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  struct annotation_list *annot_list = &(edf_hdr->annot_list);
 
   struct annotationblock *annot;
 
@@ -340,7 +423,7 @@ void UI_Annotationswindow::unhide_all_BS_triggers(bool)
 {
   int i, sz;
 
-  struct annotation_list *annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  struct annotation_list *annot_list = &(edf_hdr->annot_list);
 
   struct annotationblock *annot;
 
@@ -366,15 +449,23 @@ void UI_Annotationswindow::unhide_all_BS_triggers(bool)
 }
 
 
-void UI_Annotationswindow::filter_edited(const QString text)
+void UI_Annotationswindow::filter_edited(const QString)
+{
+  delayed_list_filter_update_timer->start(500);
+}
+
+
+void UI_Annotationswindow::delayed_list_filter_update()
 {
   int i, j, n, len, sz;
 
   char filter_str[32];
 
-  struct annotation_list *annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  struct annotation_list *annot_list = &(edf_hdr->annot_list);
 
   struct annotationblock *annot;
+
+  QString text = search_line_edit->text();
 
   sz = edfplus_annotation_size(annot_list);
 
@@ -402,7 +493,7 @@ void UI_Annotationswindow::filter_edited(const QString text)
     return;
   }
 
-  strlcpy(filter_str, lineedit1->text().toUtf8().data(), 32);
+  strlcpy(filter_str, search_line_edit->text().toUtf8().data(), 32);
 
   len = strlen(filter_str);
 
@@ -426,11 +517,11 @@ void UI_Annotationswindow::filter_edited(const QString text)
           annot->hided = 1;
         }
 
-        n = strlen(annot->annotation) - len + 1;
+        n = strlen(annot->description) - len + 1;
 
         for(j=0; j<n; j++)
         {
-          if(!(strncmp(filter_str, annot->annotation + j, len)))
+          if(!(strncmp(filter_str, annot->description + j, len)))
           {
             annot->hided_in_list = 0;
 
@@ -455,11 +546,11 @@ void UI_Annotationswindow::filter_edited(const QString text)
 
         annot->hided = 0;
 
-        n = strlen(annot->annotation) - len + 1;
+        n = strlen(annot->description) - len + 1;
 
         for(j=0; j<n; j++)
         {
-          if(!(strncmp(filter_str, annot->annotation + j, len)))
+          if(!(strncmp(filter_str, annot->description + j, len)))
           {
             annot->hided_in_list = 1;
 
@@ -485,7 +576,7 @@ void UI_Annotationswindow::checkbox2_clicked(int state)
 {
   int changed=0, sz;
 
-  struct annotation_list *annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  struct annotation_list *annot_list = &(edf_hdr->annot_list);
 
   sz = edfplus_annotation_size(annot_list);
 
@@ -507,7 +598,7 @@ void UI_Annotationswindow::checkbox2_clicked(int state)
 
   if(changed == 0)  return;
 
-  filter_edited(lineedit1->text());
+  filter_edited(search_line_edit->text());
 }
 
 
@@ -529,7 +620,7 @@ void UI_Annotationswindow::show_between(bool)
     return;
   }
 
-  struct annotation_list *annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  struct annotation_list *annot_list = &(edf_hdr->annot_list);
 
   struct annotationblock *annot;
 
@@ -572,7 +663,7 @@ void UI_Annotationswindow::hide_annot(bool)
 
   n = list->currentRow();
 
-  struct annotation_list *annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  struct annotation_list *annot_list = &(edf_hdr->annot_list);
 
   struct annotationblock *annot;
 
@@ -603,7 +694,7 @@ void UI_Annotationswindow::unhide_annot(bool)
 
   n = list->currentRow();
 
-  struct annotation_list *annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  struct annotation_list *annot_list = &(edf_hdr->annot_list);
 
   struct annotationblock *annot;
 
@@ -638,7 +729,7 @@ void UI_Annotationswindow::hide_same_annots(bool)
 
   n = list->currentRow();
 
-  struct annotation_list *annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  struct annotation_list *annot_list = &(edf_hdr->annot_list);
 
   struct annotationblock *annot;
 
@@ -648,7 +739,7 @@ void UI_Annotationswindow::hide_same_annots(bool)
 
   annot = edfplus_annotation_get_item_visible_only(annot_list, n);
 
-  strlcpy(str1, annot->annotation, MAX_ANNOTATION_LEN);
+  strlcpy(str1, annot->description, MAX_ANNOTATION_LEN);
 
   remove_leading_spaces(str1);
 
@@ -658,7 +749,7 @@ void UI_Annotationswindow::hide_same_annots(bool)
   {
     annot = edfplus_annotation_get_item(annot_list, i);
 
-    strlcpy(str2, annot->annotation, MAX_ANNOTATION_LEN);
+    strlcpy(str2, annot->description, MAX_ANNOTATION_LEN);
 
     remove_leading_spaces(str2);
 
@@ -668,7 +759,14 @@ void UI_Annotationswindow::hide_same_annots(bool)
     {
       annot->hided_in_list = 1;
 
-      annot->hided = 1;
+      if(mainwindow->annot_filter->hide_in_list_only)
+      {
+        annot->hided = 0;
+      }
+      else
+      {
+        annot->hided = 1;
+      }
     }
   }
 
@@ -689,7 +787,7 @@ void UI_Annotationswindow::unhide_same_annots(bool)
 
   n = list->currentRow();
 
-  struct annotation_list *annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  struct annotation_list *annot_list = &(edf_hdr->annot_list);
 
   struct annotationblock *annot;
 
@@ -699,7 +797,7 @@ void UI_Annotationswindow::unhide_same_annots(bool)
 
   annot = edfplus_annotation_get_item_visible_only(annot_list, n);
 
-  strlcpy(str1, annot->annotation, MAX_ANNOTATION_LEN);
+  strlcpy(str1, annot->description, MAX_ANNOTATION_LEN);
 
   remove_leading_spaces(str1);
 
@@ -709,7 +807,7 @@ void UI_Annotationswindow::unhide_same_annots(bool)
   {
     annot = edfplus_annotation_get_item(annot_list, i);
 
-    strlcpy(str2, annot->annotation, MAX_ANNOTATION_LEN);
+    strlcpy(str2, annot->description, MAX_ANNOTATION_LEN);
 
     remove_leading_spaces(str2);
 
@@ -733,7 +831,7 @@ void UI_Annotationswindow::unhide_all_annots(bool)
 {
   int i, sz;
 
-  struct annotation_list *annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  struct annotation_list *annot_list = &(edf_hdr->annot_list);
 
   struct annotationblock *annot;
 
@@ -782,7 +880,7 @@ void UI_Annotationswindow::average_annot(bool)
     return;
   }
 
-  UI_AveragerWindow average_wndw(mainwindow, list->currentRow(), file_num);
+  UI_AveragerWindow average_wndw(mainwindow, list->currentRow(), edf_hdr);
 }
 
 
@@ -812,7 +910,9 @@ void UI_Annotationswindow::hide_editdock(bool visible)
 {
   if(visible==false)
   {
-    mainwindow->annotationEditDock->dockedit->hide();
+    delete mainwindow->annotationEditDock;
+
+    mainwindow->annotationEditDock = NULL;
   }
 }
 
@@ -849,7 +949,7 @@ void UI_Annotationswindow::updateList(void)
 
   list->clear();
 
-  annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  annot_list = &(edf_hdr->annot_list);
 
   sz = edfplus_annotation_size(annot_list);
 
@@ -880,37 +980,37 @@ void UI_Annotationswindow::updateList(void)
 
     if(relative)
     {
-      if((annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) < 0LL)
+      if((annot->onset - edf_hdr->starttime_offset) < 0LL)
       {
         snprintf(str, (MAX_ANNOTATION_LEN + 32) / 2, "  -%2i:%02i:%02i.%04i",
-                (int)((-(annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) / TIME_DIMENSION)/ 3600),
-                (int)(((-(annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) / TIME_DIMENSION) % 3600) / 60),
-                (int)((-(annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) / TIME_DIMENSION) % 60),
-                (int)((-(annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) % TIME_DIMENSION) / 1000LL));
+                (int)((-(annot->onset - edf_hdr->starttime_offset) / TIME_DIMENSION)/ 3600),
+                (int)(((-(annot->onset - edf_hdr->starttime_offset) / TIME_DIMENSION) % 3600) / 60),
+                (int)((-(annot->onset - edf_hdr->starttime_offset) / TIME_DIMENSION) % 60),
+                (int)((-(annot->onset - edf_hdr->starttime_offset) % TIME_DIMENSION) / 1000LL));
       }
       else
       {
         snprintf(str, (MAX_ANNOTATION_LEN + 32) / 2, "  %3i:%02i:%02i.%04i",
-                (int)(((annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) / TIME_DIMENSION)/ 3600),
-                (int)((((annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) / TIME_DIMENSION) % 3600) / 60),
-                (int)(((annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) / TIME_DIMENSION) % 60),
-                (int)(((annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) % TIME_DIMENSION) / 1000LL));
+                (int)(((annot->onset - edf_hdr->starttime_offset) / TIME_DIMENSION)/ 3600),
+                (int)((((annot->onset - edf_hdr->starttime_offset) / TIME_DIMENSION) % 3600) / 60),
+                (int)(((annot->onset - edf_hdr->starttime_offset) / TIME_DIMENSION) % 60),
+                (int)(((annot->onset - edf_hdr->starttime_offset) % TIME_DIMENSION) / 1000LL));
       }
     }
     else
     {
       snprintf(str, MAX_ANNOTATION_LEN + 32, "  %3i:%02i:%02i.%04i",
-              (int)((((annot->onset + mainwindow->edfheaderlist[file_num]->l_starttime) / TIME_DIMENSION)/ 3600) % 24),
-              (int)((((annot->onset + mainwindow->edfheaderlist[file_num]->l_starttime) / TIME_DIMENSION) % 3600) / 60),
-              (int)(((annot->onset + mainwindow->edfheaderlist[file_num]->l_starttime) / TIME_DIMENSION) % 60),
-              (int)(((annot->onset + mainwindow->edfheaderlist[file_num]->l_starttime) % TIME_DIMENSION) / 1000LL));
+              (int)((((annot->onset + edf_hdr->l_starttime) / TIME_DIMENSION)/ 3600) % 24),
+              (int)((((annot->onset + edf_hdr->l_starttime) / TIME_DIMENSION) % 3600) / 60),
+              (int)(((annot->onset + edf_hdr->l_starttime) / TIME_DIMENSION) % 60),
+              (int)(((annot->onset + edf_hdr->l_starttime) % TIME_DIMENSION) / 1000LL));
     }
 
     str[MAX_ANNOTATION_LEN + 31] = 0;
 
     remove_trailing_zeros(str);
 
-    string = QString::fromUtf8(annot->annotation);
+    string = QString::fromUtf8(annot->description);
 
     if(string.size() < 20)
     {
@@ -932,21 +1032,21 @@ void UI_Annotationswindow::updateList(void)
       modified = 1;
     }
 
-    if((annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) < 0LL)
+    if((annot->onset - edf_hdr->starttime_offset) < 0LL)
     {
       snprintf(str, (MAX_ANNOTATION_LEN + 32) / 2, "onset: -%i:%02i:%02i.%04i",
-              (int)((-(annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) / TIME_DIMENSION)/ 3600),
-              (int)(((-(annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) / TIME_DIMENSION) % 3600) / 60),
-              (int)((-(annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) / TIME_DIMENSION) % 60),
-              (int)((-(annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) % TIME_DIMENSION) / 1000LL));
+              (int)((-(annot->onset - edf_hdr->starttime_offset) / TIME_DIMENSION)/ 3600),
+              (int)(((-(annot->onset - edf_hdr->starttime_offset) / TIME_DIMENSION) % 3600) / 60),
+              (int)((-(annot->onset - edf_hdr->starttime_offset) / TIME_DIMENSION) % 60),
+              (int)((-(annot->onset - edf_hdr->starttime_offset) % TIME_DIMENSION) / 1000LL));
     }
     else
     {
       snprintf(str, (MAX_ANNOTATION_LEN + 32) / 2, "onset: %2i:%02i:%02i.%04i",
-              (int)(((annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) / TIME_DIMENSION)/ 3600),
-              (int)((((annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) / TIME_DIMENSION) % 3600) / 60),
-              (int)(((annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) / TIME_DIMENSION) % 60),
-              (int)(((annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) % TIME_DIMENSION) / 1000LL));
+              (int)(((annot->onset - edf_hdr->starttime_offset) / TIME_DIMENSION)/ 3600),
+              (int)((((annot->onset - edf_hdr->starttime_offset) / TIME_DIMENSION) % 3600) / 60),
+              (int)(((annot->onset - edf_hdr->starttime_offset) / TIME_DIMENSION) % 60),
+              (int)(((annot->onset - edf_hdr->starttime_offset) % TIME_DIMENSION) / 1000LL));
     }
 
     if(annot->duration[0]!=0)
@@ -962,7 +1062,7 @@ void UI_Annotationswindow::updateList(void)
 
     string = QString::fromLatin1(str);
 
-    string.append(QString::fromUtf8(annot->annotation));
+    string.append(QString::fromUtf8(annot->description));
 
     listitem->setToolTip(string);
 
@@ -987,7 +1087,10 @@ void UI_Annotationswindow::updateList(void)
     {
       list->setCurrentRow(selected, QItemSelectionModel::ClearAndSelect);
 
-      mainwindow->annotationEditDock->set_selected_annotation(file_num, selected);
+      if(mainwindow->annotationEditDock != NULL)
+      {
+        mainwindow->annotationEditDock->set_selected_annotation(selected);
+      }
 
       if(jump)
       {
@@ -1010,6 +1113,8 @@ void UI_Annotationswindow::updateList(void)
   messagewindow.hide();
 
   QApplication::restoreOverrideCursor();
+
+  mainwindow->annot_dock_updated();
 }
 
 
@@ -1022,7 +1127,7 @@ void UI_Annotationswindow::annotation_selected(QListWidgetItem * item, int cente
 
   struct annotationblock *annot;
 
-  struct annotation_list *annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  struct annotation_list *annot_list = &(edf_hdr->annot_list);
 
   n = item->data(Qt::UserRole).toInt();
 
@@ -1030,23 +1135,30 @@ void UI_Annotationswindow::annotation_selected(QListWidgetItem * item, int cente
 
   if(n >= sz)  return;
 
+  edfplus_annotation_cancel_all_selected_in_dock(annot_list);
+
   annot = edfplus_annotation_get_item(annot_list, n);
+
+  annot->selected_in_dock = 1;
 
   if(mainwindow->annot_editor_active)
   {
-    mainwindow->annotationEditDock->set_selected_annotation(file_num, n);
+    if(mainwindow->annotationEditDock != NULL)
+    {
+      mainwindow->annotationEditDock->set_selected_annotation(n);
+    }
   }
 
   if(mainwindow->video_player->status == VIDEO_STATUS_PLAYING)
   {
-    mainwindow->video_player_seek((int)((annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) / TIME_DIMENSION));
+    mainwindow->video_player_seek((int)((annot->onset - edf_hdr->starttime_offset) / TIME_DIMENSION));
 
     return;
   }
 
   if(mainwindow->video_player->status == VIDEO_STATUS_PAUSED)
   {
-    mainwindow->video_player_seek((int)((annot->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) / TIME_DIMENSION));
+    mainwindow->video_player_seek((int)((annot->onset - edf_hdr->starttime_offset) / TIME_DIMENSION));
   }
 
   if(mainwindow->viewtime_sync==VIEWTIME_SYNCED_OFFSET)
@@ -1060,27 +1172,27 @@ void UI_Annotationswindow::annotation_selected(QListWidgetItem * item, int cente
         mainwindow->edfheaderlist[i]->viewtime -= (mainwindow->pagetime / 2);
       }
 
-      mainwindow->edfheaderlist[i]->viewtime -= mainwindow->edfheaderlist[file_num]->starttime_offset;
+      mainwindow->edfheaderlist[i]->viewtime -= edf_hdr->starttime_offset;
     }
   }
 
   if(mainwindow->viewtime_sync==VIEWTIME_UNSYNCED)
   {
-    mainwindow->edfheaderlist[file_num]->viewtime = annot->onset;
+    edf_hdr->viewtime = annot->onset;
 
     if(centered)
     {
-      mainwindow->edfheaderlist[file_num]->viewtime -= (mainwindow->pagetime / 2);
+      edf_hdr->viewtime -= (mainwindow->pagetime / 2);
     }
 
-    mainwindow->edfheaderlist[file_num]->viewtime -= mainwindow->edfheaderlist[file_num]->starttime_offset;
+    edf_hdr->viewtime -= edf_hdr->starttime_offset;
   }
 
   if((mainwindow->viewtime_sync==VIEWTIME_SYNCED_ABSOLUT)||(mainwindow->viewtime_sync==VIEWTIME_USER_DEF_SYNCED))
   {
-    temp = annot->onset - mainwindow->edfheaderlist[file_num]->viewtime;
+    temp = annot->onset - edf_hdr->viewtime;
 
-    temp -= mainwindow->edfheaderlist[file_num]->starttime_offset;
+    temp -= edf_hdr->starttime_offset;
 
     if(centered)
     {
@@ -1093,7 +1205,7 @@ void UI_Annotationswindow::annotation_selected(QListWidgetItem * item, int cente
     }
   }
 
-  if(mainwindow->annotationEditDock->dockedit->isVisible()==true)
+  if(mainwindow->annotationEditDock != NULL)
   {
     mainwindow->maincurve->setCrosshair_1_center();
   }

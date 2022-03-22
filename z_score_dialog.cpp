@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2012 - 2019 Teunis van Beelen
+* Copyright (C) 2012 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -1043,6 +1042,8 @@ void UI_ZScoreWindow::get_annotationsButtonClicked()
 
   struct annotationblock annotation;
 
+  struct edfhdrblock *edf_hdr = mainwindow->signalcomp[signalnr]->edfhdr;
+
   if((epoch_cntr < 2) || (zscore_pages < 1))
   {
     return;
@@ -1060,7 +1061,7 @@ void UI_ZScoreWindow::get_annotationsButtonClicked()
     marker_end = zscore_pages;
   }
 
-  filenum = mainwindow->signalcomp[signalnr]->edfhdr->file_num;
+  filenum = mainwindow->get_filenum(edf_hdr);
 
   for(i=0; i<marker_end; i++)
   {
@@ -1075,11 +1076,11 @@ void UI_ZScoreWindow::get_annotationsButtonClicked()
         annotation.onset = i * zscore_page_len * 2LL * TIME_DIMENSION;
         if(awake)
         {
-          strlcpy(annotation.annotation, "Wake", MAX_ANNOTATION_LEN_II + 1);
+          strlcpy(annotation.description, "Wake", MAX_ANNOTATION_LEN_II + 1);
         }
         else
         {
-          strlcpy(annotation.annotation, "Sleep", MAX_ANNOTATION_LEN_II + 1);
+          strlcpy(annotation.description, "Sleep", MAX_ANNOTATION_LEN_II + 1);
         }
         edfplus_annotation_add_item(&mainwindow->edfheaderlist[filenum]->annot_list, annotation);
       }
@@ -1088,7 +1089,7 @@ void UI_ZScoreWindow::get_annotationsButtonClicked()
 
   if(mainwindow->annotations_dock[filenum] == NULL)
   {
-    mainwindow->annotations_dock[filenum] = new UI_Annotationswindow(filenum, mainwindow);
+    mainwindow->annotations_dock[filenum] = new UI_Annotationswindow(edf_hdr, mainwindow);
 
     mainwindow->addDockWidget(Qt::RightDockWidgetArea, mainwindow->annotations_dock[filenum]->docklist, Qt::Vertical);
 
@@ -1353,7 +1354,7 @@ void UI_ZScoreWindow::jumpButtonClicked()
     onset = position * ZSCORE_EPOCH_LEN * TIME_DIMENSION;
   }
 
-  file_num = mainwindow->signalcomp[signalnr]->edfhdr->file_num;
+  file_num = mainwindow->get_filenum(mainwindow->signalcomp[signalnr]->edfhdr);
 
   if(mainwindow->viewtime_sync==VIEWTIME_SYNCED_OFFSET)
   {

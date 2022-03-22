@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.15)
 #set(CMAKE_TOOLCHAIN_FILE /Users/Sevi_Pro/Desktop/seviEDFbrow/edfbrowser_170_source/CMAKE_TOOLCHAIN_FILE.cmake)
-project(edfbrowser_170_source)
+project(EDFbrowser_master)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 
 set(CMAKE_AUTOMOC ON)
 
@@ -11,7 +11,6 @@ set(CMAKE_AUTOUIC ON)
 include_directories(.)
 include_directories(third_party/fidlib)
 include_directories(third_party/kiss_fft)
-include_directories(third_party/smarc)
 include_directories(SYSTEM ./lib)
 include_directories(./usr/bin/)
 
@@ -21,8 +20,7 @@ find_package(Qt5Network REQUIRED)
 find_package(Qt5Gui REQUIRED)
 find_package(Qt5PrintSupport REQUIRED)
 
-
-add_executable(edfbrowser_170_source
+add_executable(EDFbrowser-master
         images.qrc
         third_party/fidlib/fidlib.c
         third_party/fidlib/fidlib.h
@@ -33,18 +31,6 @@ add_executable(edfbrowser_170_source
         third_party/kiss_fft/kiss_fft.h
         third_party/kiss_fft/kiss_fftr.c
         third_party/kiss_fft/kiss_fftr.h
-        third_party/smarc/filtering.c
-        third_party/smarc/filtering.h
-        third_party/smarc/multi_stage.c
-        third_party/smarc/multi_stage.h
-        third_party/smarc/polyfilt.c
-        third_party/smarc/polyfilt.h
-        third_party/smarc/remez_lp.c
-        third_party/smarc/remez_lp.h
-        third_party/smarc/smarc.c
-        third_party/smarc/smarc.h
-        third_party/smarc/stage_impl.c
-        third_party/smarc/stage_impl.h
         about_dialog.cpp
         about_dialog.h
         active_file_chooser.cpp
@@ -63,7 +49,6 @@ add_executable(edfbrowser_170_source
         averager_curve_wnd.h
         averager_dialog.cpp
         averager_dialog.h
-        banned.h
         bdf2edf.cpp
         bdf2edf.h
         bdf_triggers.cpp
@@ -74,6 +59,10 @@ add_executable(edfbrowser_170_source
         biosemi2bdfplus.h
         biox2edf.cpp
         biox2edf.h
+        cdsa_dialog.cpp
+        cdsa_dialog.h
+        cdsa_dock.cpp
+        cdsa_dock.h
         check_edf_file.cpp
         check_edf_file.h
         check_for_updates.cpp
@@ -131,12 +120,23 @@ add_executable(edfbrowser_170_source
         fma_ecg2edf.cpp
         fma_ecg2edf.h
         global.h
+        gpl.txt
         header_editor.cpp
         header_editor.h
+        hrv_dock.cpp
+        hrv_dock.h
+        hypnogram_dialog.cpp
+        hypnogram_dialog.h
+        hypnogram_dock.cpp
+        hypnogram_dock.h
+        images.qrc
         import_annotations.cpp
         import_annotations.h
+        ishne2edf.cpp
+        ishne2edf.h
         jump_dialog.cpp
         jump_dialog.h
+        LICENSE
         load_montage_dialog.cpp
         load_montage_dialog.h
         main.cpp
@@ -167,6 +167,8 @@ add_executable(edfbrowser_170_source
         print_to_bdf.h
         print_to_edf.cpp
         print_to_edf.h
+        pt_qrs.c
+        pt_qrs.h
         ravg_filter.c
         ravg_filter.h
         raw2edf.cpp
@@ -174,6 +176,8 @@ add_executable(edfbrowser_170_source
         read_write_settings.cpp
         reduce_signals.cpp
         reduce_signals.h
+        run_qrs_detector.cpp
+        run_qrs_detector.h
         save_annots.cpp
         save_annots.h
         save_montage_dialog.cpp
@@ -221,12 +225,6 @@ add_executable(edfbrowser_170_source
         z_ratio_filter.c
         z_ratio_filter.h
         z_score_dialog.cpp
-        z_score_dialog.h
-        hilbertDock.cpp
-        hilbertDock.h
-        import_Data.cpp
-        import_Data.h
-        sync_manager.cpp
-        sync_manager.h createGraphs.cpp createGraphs.h)
+        z_score_dialog.h import_gyrodata.cpp import_gyrodata.h startGyroAnalysis.cpp startGyroAnalysis.h sync_manager.cpp sync_manager.h createGraphs.cpp createGraphs.h)
 
-target_link_libraries(edfbrowser_170_source Qt5::Core Qt5::Widgets Qt5::Network Qt5::Gui Qt5::PrintSupport)
+target_link_libraries(EDFbrowser-master Qt5::Core Qt5::Widgets Qt5::Network Qt5::Gui Qt5::PrintSupport)

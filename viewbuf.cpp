@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2007 - 2019 Teunis van Beelen
+* Copyright (C) 2007 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -886,6 +885,8 @@ void UI_Mainwindow::setup_viewbuf()
 
         record_duration -= pagetime;
 
+        emit file_position_changed(edfheaderlist[sel_viewtime]->viewtime);
+
         if(edfheaderlist[sel_viewtime]->viewtime <= 0)
         {
           positionslider->setValue(0);
@@ -904,7 +905,14 @@ void UI_Mainwindow::setup_viewbuf()
             }
             else
             {
-              positionslider->setValue(edfheaderlist[sel_viewtime]->viewtime * 1000000LL / record_duration);
+              if(record_duration > 1e12)
+              {
+                positionslider->setValue(edfheaderlist[sel_viewtime]->viewtime / (record_duration / 1000000LL));
+              }
+              else
+              {
+                positionslider->setValue(edfheaderlist[sel_viewtime]->viewtime * 1000000LL / record_duration);
+              }
             }
           }
         }

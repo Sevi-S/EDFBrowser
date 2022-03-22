@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2017 - 2019 Teunis van Beelen
+* Copyright (C) 2017 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -32,19 +31,23 @@
 
 
 
-UI_AnnotFilterWindow::UI_AnnotFilterWindow(QWidget *w_parent, struct annotationblock *annot, struct annot_filter_struct *filter_p, int file_n)
+UI_AnnotFilterWindow::UI_AnnotFilterWindow(QWidget *w_parent, struct annotationblock *annot, struct annot_filter_struct *filter_p, struct edfhdrblock *e_hdr)
 {
+  int n;
+
   mainwindow = (UI_Mainwindow *)w_parent;
 
   annot_filter_dialog = new QDialog(w_parent);
 
-  file_num = file_n;
+  edf_hdr = e_hdr;
 
-  annot_list = &mainwindow->edfheaderlist[file_num]->annot_list;
+  annot_list = &(edf_hdr->annot_list);
 
   filter_params = filter_p;
 
-  annots_dock = mainwindow->annotations_dock[file_num];
+  n = mainwindow->get_filenum(edf_hdr);
+
+  annots_dock = mainwindow->annotations_dock[n];
 
   annot_filter_dialog->setMinimumSize(430, 400);
   annot_filter_dialog->setMaximumSize(430, 400);
@@ -137,7 +140,7 @@ UI_AnnotFilterWindow::UI_AnnotFilterWindow(QWidget *w_parent, struct annotationb
   CloseButton->setText("Close");
 
   sel_annot_ptr = annot;
-  strlcpy(sel_annot_str, sel_annot_ptr->annotation, MAX_ANNOTATION_LEN + 1);
+  strlcpy(sel_annot_str, sel_annot_ptr->description, MAX_ANNOTATION_LEN + 1);
   remove_leading_spaces(sel_annot_str);
   remove_trailing_spaces(sel_annot_str);
 
@@ -244,7 +247,7 @@ void UI_AnnotFilterWindow::apply_filter()
   {
     annot = edfplus_annotation_get_item(annot_list, i);
 
-    strlcpy(annot_str, annot->annotation, MAX_ANNOTATION_LEN + 1);
+    strlcpy(annot_str, annot->description, MAX_ANNOTATION_LEN + 1);
     remove_leading_spaces(sel_annot_str);
     remove_trailing_spaces(annot_str);
 

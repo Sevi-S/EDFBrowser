@@ -1,9 +1,9 @@
 //
-// Created by Sevi Suonenlahti on 12.12.2019.
+// Created by Sevi Suonenlahti on 24.8.2020.
 //
 
-#ifndef EDFBROWSER_170_SOURCE_SYNC_MANAGER_H
-#define EDFBROWSER_170_SOURCE_SYNC_MANAGER_H
+#ifndef EDFBROWSER_MASTER_SYNC_MANAGER_H
+#define EDFBROWSER_MASTER_SYNC_MANAGER_H
 
 #include <QtGlobal>
 #include <QApplication>
@@ -27,7 +27,11 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <string>
 #include <stdlib.h>
+
+#include <iostream>
+#include <fstream>
 
 #include "global.h"
 #include "mainwindow.h"
@@ -38,7 +42,7 @@
 #include "ravg_filter.h"
 #include "flywheel.h"
 #include "fft_wrap.h"
-#include "import_Data.h"
+#include "import_gyrodata.h"
 
 
 #include "third_party/fidlib/fidlib.h"
@@ -58,9 +62,12 @@ public:
 
     QDialog *SyncDialog;
 
+    int clickedfile;
+
+
 private:
- //   int offset1, offset2, offset3;
-    QListWidget* filelist;
+    //   int offset1, offset2, offset3;
+   // QListWidget* filelist;
     QDockWidget* dock;
 
     QString *printOffset1,*printOffset2,*printOffset3;
@@ -71,21 +78,29 @@ private:
 
     QDoubleSpinBox *gyrooffset1,*gyrooffset2,*gyrooffset3;
 
-  //  QTextEdit *totOffSet1, *totOffSet2, *totOffSet3;
+    //  QTextEdit *totOffSet1, *totOffSet2, *totOffSet3;
 
     double crosshairOffset, initialOffset, totalOffset, printoffset,offset1, offset2, offset3;
 
-    QPushButton *AddButtonClose,*AddButtonSync, *AddButtonBack, *AddButtonCross;
-   // SignalCurve *curve1, curve2, curve3;
+    QPushButton *AddButtonClose,*AddButtonSync, *AddButtonBack, *AddButtonCross, *AddbuttonGyr1, *AddbuttonGyr2, *AddbuttonGyr3;
+    // SignalCurve *curve1, curve2, curve3;
+
+    void emitSimulateClick();
 
 public slots:
-    void fileList();
-   // void timeControl();
+   // void fileList();
+    // void timeControl();
     void openImporter();
     void crossHairs();
     void itsHappening();
-  //  void refreshTimes();
+    //  void refreshTimes();
     void doSyncStuff();
+    void file1();
+    void file2();
+    void file3();
+
+    //signals:
+
 };
 
-#endif //EDFBROWSER_170_SOURCE_SYNC_MANAGER_H
+#endif //EDFBROWSER_MASTER_SYNC_MANAGER_H

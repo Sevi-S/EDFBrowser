@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2007 - 2019 Teunis van Beelen
+* Copyright (C) 2007 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -162,6 +161,8 @@ void UI_Mainwindow::read_color_settings()
   get_rgbcolor_settings(xml_hdl, "annot_marker_color", 0, &maincurve->annot_marker_color);
 
   get_rgbcolor_settings(xml_hdl, "annot_duration_color", 0, &maincurve->annot_duration_color);
+
+  get_rgbcolor_settings(xml_hdl, "annot_duration_color_selected", 0, &maincurve->annot_duration_color_selected);
 
   if(xml_goto_nth_element_inside(xml_hdl, "signal_color", 0))
   {
@@ -1178,6 +1179,214 @@ void UI_Mainwindow::read_general_settings()
     xml_go_up(xml_hdl);
   }
 
+  if(!(xml_goto_nth_element_inside(xml_hdl, "cdsa", 0)))
+  {
+    if(!(xml_goto_nth_element_inside(xml_hdl, "cdsa_segmentlen", 0)))
+    {
+      if(xml_get_content_of_element(xml_hdl, result, XML_STRBUFLEN))
+      {
+        xml_close(xml_hdl);
+        return;
+      }
+
+      cdsa_segmentlen = atoi(result);
+
+      xml_go_up(xml_hdl);
+    }
+
+    if(!(xml_goto_nth_element_inside(xml_hdl, "cdsa_blocklen", 0)))
+    {
+      if(xml_get_content_of_element(xml_hdl, result, XML_STRBUFLEN))
+      {
+        xml_close(xml_hdl);
+        return;
+      }
+
+      cdsa_blocklen = atoi(result);
+
+      xml_go_up(xml_hdl);
+    }
+
+    if(!(xml_goto_nth_element_inside(xml_hdl, "cdsa_overlap", 0)))
+    {
+      if(xml_get_content_of_element(xml_hdl, result, XML_STRBUFLEN))
+      {
+        xml_close(xml_hdl);
+        return;
+      }
+
+      cdsa_overlap = atoi(result);
+
+      xml_go_up(xml_hdl);
+    }
+
+    if(!(xml_goto_nth_element_inside(xml_hdl, "cdsa_window_func", 0)))
+    {
+      if(xml_get_content_of_element(xml_hdl, result, XML_STRBUFLEN))
+      {
+        xml_close(xml_hdl);
+        return;
+      }
+
+      cdsa_window_func = atoi(result);
+
+      xml_go_up(xml_hdl);
+    }
+
+    if(!(xml_goto_nth_element_inside(xml_hdl, "cdsa_min_hz", 0)))
+    {
+      if(xml_get_content_of_element(xml_hdl, result, XML_STRBUFLEN))
+      {
+        xml_close(xml_hdl);
+        return;
+      }
+
+      cdsa_min_hz = atoi(result);
+
+      xml_go_up(xml_hdl);
+    }
+
+    if(!(xml_goto_nth_element_inside(xml_hdl, "cdsa_max_hz", 0)))
+    {
+      if(xml_get_content_of_element(xml_hdl, result, XML_STRBUFLEN))
+      {
+        xml_close(xml_hdl);
+        return;
+      }
+
+      cdsa_max_hz = atoi(result);
+
+      xml_go_up(xml_hdl);
+    }
+
+    if(!(xml_goto_nth_element_inside(xml_hdl, "cdsa_max_pwr", 0)))
+    {
+      if(xml_get_content_of_element(xml_hdl, result, XML_STRBUFLEN))
+      {
+        xml_close(xml_hdl);
+        return;
+      }
+
+      cdsa_max_pwr = atoi(result);
+
+      xml_go_up(xml_hdl);
+    }
+
+    if(!(xml_goto_nth_element_inside(xml_hdl, "cdsa_min_pwr", 0)))
+    {
+      if(xml_get_content_of_element(xml_hdl, result, XML_STRBUFLEN))
+      {
+        xml_close(xml_hdl);
+        return;
+      }
+
+      cdsa_min_pwr = atoi(result);
+
+      xml_go_up(xml_hdl);
+    }
+
+    if(!(xml_goto_nth_element_inside(xml_hdl, "cdsa_log", 0)))
+    {
+      if(xml_get_content_of_element(xml_hdl, result, XML_STRBUFLEN))
+      {
+        xml_close(xml_hdl);
+        return;
+      }
+
+      cdsa_log = atoi(result);
+
+      xml_go_up(xml_hdl);
+    }
+
+    if(!(xml_goto_nth_element_inside(xml_hdl, "cdsa_pwr_voltage", 0)))
+    {
+      if(xml_get_content_of_element(xml_hdl, result, XML_STRBUFLEN))
+      {
+        xml_close(xml_hdl);
+        return;
+      }
+
+      cdsa_pwr_voltage = atoi(result);
+
+      xml_go_up(xml_hdl);
+    }
+
+    if(!(xml_goto_nth_element_inside(xml_hdl, "cdsa_max_voltage", 0)))
+    {
+      if(xml_get_content_of_element(xml_hdl, result, XML_STRBUFLEN))
+      {
+        xml_close(xml_hdl);
+        return;
+      }
+
+      cdsa_max_voltage = atof(result);
+
+      xml_go_up(xml_hdl);
+    }
+
+    xml_go_up(xml_hdl);
+  }
+
+  if(!(xml_goto_nth_element_inside(xml_hdl, "hypnogram", 0)))
+  {
+    for(i=0; i<6; i++)
+    {
+      if(!(xml_goto_nth_element_inside(xml_hdl, "stage_name", i)))
+      {
+        if(xml_get_content_of_element(xml_hdl, result, XML_STRBUFLEN))
+        {
+          xml_close(xml_hdl);
+          return;
+        }
+
+        strlcpy(hypnogram_stage_name[i], result, 32);
+
+        xml_go_up(xml_hdl);
+      }
+    }
+
+    for(i=0; i<6; i++)
+    {
+      if(!(xml_goto_nth_element_inside(xml_hdl, "annot_name", i)))
+      {
+        if(xml_get_content_of_element(xml_hdl, result, XML_STRBUFLEN))
+        {
+          xml_close(xml_hdl);
+          return;
+        }
+
+        strlcpy(hypnogram_annot_name[i], result, 32);
+
+        xml_go_up(xml_hdl);
+      }
+    }
+
+    xml_go_up(xml_hdl);
+  }
+
+  if(!(xml_goto_nth_element_inside(xml_hdl, "ecg_qrs", 0)))
+  {
+    if(!(xml_goto_nth_element_inside(xml_hdl, "r_peak_description", 0)))
+    {
+      if(xml_get_content_of_element(xml_hdl, result, XML_STRBUFLEN))
+      {
+        xml_close(xml_hdl);
+        return;
+      }
+
+      remove_leading_spaces(result);
+      remove_trailing_spaces(result);
+      if(strlen(result))
+      {
+        strlcpy(ecg_qrs_rpeak_descr, result, 32);
+      }
+
+      xml_go_up(xml_hdl);
+    }
+
+    xml_go_up(xml_hdl);
+  }
+
   if(!(xml_goto_nth_element_inside(xml_hdl, "live_stream_update_interval", 0)))
   {
     if(xml_get_content_of_element(xml_hdl, result, XML_STRBUFLEN))
@@ -1838,6 +2047,23 @@ void UI_Mainwindow::read_general_settings()
     xml_go_up(xml_hdl);
   }
 
+  if(!(xml_goto_nth_element_inside(xml_hdl, "use_diverse_signal_colors", 0)))
+  {
+    if(xml_get_content_of_element(xml_hdl, result, XML_STRBUFLEN))
+    {
+      xml_close(xml_hdl);
+      return;
+    }
+
+    use_diverse_signal_colors = atoi(result);
+    if(use_diverse_signal_colors != 1)
+    {
+      use_diverse_signal_colors = 0;
+    }
+
+    xml_go_up(xml_hdl);
+  }
+
   xml_close(xml_hdl);
 }
 
@@ -1950,6 +2176,17 @@ void UI_Mainwindow::write_settings()
                     maincurve->annot_duration_color.blue(),
                     maincurve->annot_duration_color.alpha());
 
+    fprintf(cfgfile, "      <annot_duration_color_selected>\n"
+                    "        <red>%i</red>\n"
+                    "        <green>%i</green>\n"
+                    "        <blue>%i</blue>\n"
+                    "        <alpha>%i</alpha>\n"
+                    "      </annot_duration_color_selected>\n",
+                    maincurve->annot_duration_color_selected.red(),
+                    maincurve->annot_duration_color_selected.green(),
+                    maincurve->annot_duration_color_selected.blue(),
+                    maincurve->annot_duration_color_selected.alpha());
+
     fprintf(cfgfile, "      <signal_color>%i</signal_color>\n",
                     maincurve->signal_color);
 
@@ -2002,8 +2239,10 @@ void UI_Mainwindow::write_settings()
                     maxfilesize_to_readin_annotations);
 #endif
 
-    fprintf(cfgfile, "    <pixelsizefactor>%.10f</pixelsizefactor>\n    <auto_dpi>%i</auto_dpi>\n    <x_pixelsizefactor>%.10f</x_pixelsizefactor>\n    <recent_dir>",
+    fprintf(cfgfile, "    <pixelsizefactor>%.10e</pixelsizefactor>\n    <auto_dpi>%i</auto_dpi>\n    <x_pixelsizefactor>%.10e</x_pixelsizefactor>\n",
                      pixelsizefactor, auto_dpi, x_pixelsizefactor);
+
+    fprintf(cfgfile, "    <recent_dir>");
 
     xml_fwrite_encode_entity(cfgfile, recent_opendir);
 
@@ -2066,7 +2305,7 @@ void UI_Mainwindow::write_settings()
 
     for(i=0; i < MAXSPECTRUMMARKERS; i++)
     {
-      fprintf(cfgfile, "      <frequency>%f</frequency>\n", spectrum_colorbar->freq[i]);
+      fprintf(cfgfile, "      <frequency>%.10e</frequency>\n", spectrum_colorbar->freq[i]);
     }
 
     for(i=0; i < MAXSPECTRUMMARKERS; i++)
@@ -2087,7 +2326,7 @@ void UI_Mainwindow::write_settings()
 
     fprintf(cfgfile, "      <auto_adjust>%i</auto_adjust>\n", spectrum_colorbar->auto_adjust);
 
-    fprintf(cfgfile, "      <max_colorbar_value>%.8f</max_colorbar_value>\n", spectrum_colorbar->max_colorbar_value);
+    fprintf(cfgfile, "      <max_colorbar_value>%.8e</max_colorbar_value>\n", spectrum_colorbar->max_colorbar_value);
 
     fprintf(cfgfile, "    </spectrummarkerblock>\n");
 
@@ -2115,7 +2354,7 @@ void UI_Mainwindow::write_settings()
 
     fprintf(cfgfile, "      <dceventbittime>%i</dceventbittime>\n", import_annotations_var->dceventbittime);
 
-    fprintf(cfgfile, "      <triggerlevel>%.12f</triggerlevel>\n", import_annotations_var->triggerlevel);
+    fprintf(cfgfile, "      <triggerlevel>%.12e</triggerlevel>\n", import_annotations_var->triggerlevel);
 
     fprintf(cfgfile, "      <manualdescription>%i</manualdescription>\n", import_annotations_var->manualdescription);
 
@@ -2136,6 +2375,35 @@ void UI_Mainwindow::write_settings()
     fprintf(cfgfile, "      <duration>%i</duration>\n", export_annotations_var->duration);
 
     fprintf(cfgfile, "    </annotations_export_var>\n");
+
+    fprintf(cfgfile, "    <cdsa>\n");
+    fprintf(cfgfile, "      <cdsa_segmentlen>%i</cdsa_segmentlen>\n", cdsa_segmentlen);
+    fprintf(cfgfile, "      <cdsa_blocklen>%i</cdsa_blocklen>\n", cdsa_blocklen);
+    fprintf(cfgfile, "      <cdsa_overlap>%i</cdsa_overlap>\n", cdsa_overlap);
+    fprintf(cfgfile, "      <cdsa_window_func>%i</cdsa_window_func>\n", cdsa_window_func);
+    fprintf(cfgfile, "      <cdsa_min_hz>%i</cdsa_min_hz>\n", cdsa_min_hz);
+    fprintf(cfgfile, "      <cdsa_max_hz>%i</cdsa_max_hz>\n", cdsa_max_hz);
+    fprintf(cfgfile, "      <cdsa_max_pwr>%i</cdsa_max_pwr>\n", cdsa_max_pwr);
+    fprintf(cfgfile, "      <cdsa_min_pwr>%i</cdsa_min_pwr>\n", cdsa_min_pwr);
+    fprintf(cfgfile, "      <cdsa_log>%i</cdsa_log>\n", cdsa_log);
+    fprintf(cfgfile, "      <cdsa_pwr_voltage>%i</cdsa_pwr_voltage>\n", cdsa_pwr_voltage);
+    fprintf(cfgfile, "      <cdsa_max_voltage>%.10e</cdsa_max_voltage>\n", cdsa_max_voltage);
+    fprintf(cfgfile, "    </cdsa>\n");
+
+    fprintf(cfgfile, "    <hypnogram>\n");
+    for(i=0; i<6; i++)
+    {
+      fprintf(cfgfile, "      <stage_name>%s</stage_name>\n", hypnogram_stage_name[i]);
+    }
+    for(i=0; i<6; i++)
+    {
+      fprintf(cfgfile, "      <annot_name>%s</annot_name>\n", hypnogram_annot_name[i]);
+    }
+    fprintf(cfgfile, "    </hypnogram>\n");
+
+    fprintf(cfgfile, "    <ecg_qrs>\n");
+    fprintf(cfgfile, "      <r_peak_description>%s</r_peak_description>\n", ecg_qrs_rpeak_descr);
+    fprintf(cfgfile, "    </ecg_qrs>\n");
 
     fprintf(cfgfile, "    <live_stream_update_interval>%i</live_stream_update_interval>\n", live_stream_update_interval);
 
@@ -2163,15 +2431,15 @@ void UI_Mainwindow::write_settings()
 
     fprintf(cfgfile, "    <spectrumdock_vlog>%i</spectrumdock_vlog>\n", spectrumdock_vlog);
 
-    fprintf(cfgfile, "    <z_score_var.crossoverfreq>%f</z_score_var.crossoverfreq>\n", z_score_var.crossoverfreq);
+    fprintf(cfgfile, "    <z_score_var.crossoverfreq>%.10e</z_score_var.crossoverfreq>\n", z_score_var.crossoverfreq);
 
-    fprintf(cfgfile, "    <z_score_var.z_threshold>%f</z_score_var.z_threshold>\n", z_score_var.z_threshold);
+    fprintf(cfgfile, "    <z_score_var.z_threshold>%.10e</z_score_var.z_threshold>\n", z_score_var.z_threshold);
 
     fprintf(cfgfile, "    <z_score_var.zscore_page_len>%i</z_score_var.zscore_page_len>\n", z_score_var.zscore_page_len);
 
     fprintf(cfgfile, "    <z_score_var.zscore_error_detection>%i</z_score_var.zscore_error_detection>\n", z_score_var.zscore_error_detection);
 
-    fprintf(cfgfile, "    <z_score_var.z_hysteresis>%f</z_score_var.z_hysteresis>\n", z_score_var.z_hysteresis);
+    fprintf(cfgfile, "    <z_score_var.z_hysteresis>%.10e</z_score_var.z_hysteresis>\n", z_score_var.z_hysteresis);
 
     fprintf(cfgfile, "    <raw2edf_var>\n");
 
@@ -2219,11 +2487,13 @@ void UI_Mainwindow::write_settings()
 
     fprintf(cfgfile, "    <mainwindow_title_type>%i</mainwindow_title_type>\n", mainwindow_title_type);
 
-    fprintf(cfgfile, "    <default_amplitude>%f</default_amplitude>\n", default_amplitude);
+    fprintf(cfgfile, "    <default_amplitude>%.10e</default_amplitude>\n", default_amplitude);
 
     fprintf(cfgfile, "    <linear_interpolation>%i</linear_interpolation>\n", linear_interpol);
 
     fprintf(cfgfile, "    <auto_update_annot_onset>%i</auto_update_annot_onset>\n", auto_update_annot_onset);
+
+    fprintf(cfgfile, "    <use_diverse_signal_colors>%i</use_diverse_signal_colors>\n", use_diverse_signal_colors);
 
     fprintf(cfgfile, "  </UI>\n</config>\n");
 

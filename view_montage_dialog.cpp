@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2007 - 2019 Teunis van Beelen
+* Copyright (C) 2007 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -103,7 +102,6 @@ void UI_ViewMontagewindow::SelectButtonClicked()
       ravg_filter_cnt=0,
       fidfilter_cnt=0,
       islpf,
-      factor[MAXSIGNALS],
       signalcomps,
       screen_offset,
       order,
@@ -116,10 +114,11 @@ void UI_ViewMontagewindow::SelectButtonClicked()
       plif_linear_threshold,
       n_taps;
 
-  char result[XML_STRBUFLEN],
-       composition_txt[2048],
-       label[256],
-       str2[2048];
+  char result[XML_STRBUFLEN]="",
+       composition_txt[2048]="",
+       label[256]="",
+       str2[2048]="",
+       str3[64]="";
 
   double frequency,
          frequency2,
@@ -128,6 +127,7 @@ void UI_ViewMontagewindow::SelectButtonClicked()
          timescale,
          d_tmp,
          velocity,
+         factor[MAXSIGNALS],
          fir_vars[1000];
 
   QStandardItem *parentItem,
@@ -372,7 +372,7 @@ void UI_ViewMontagewindow::SelectButtonClicked()
         xml_close(xml_hdl);
         return;
       }
-      factor[signals_read] = atoi(result);
+      factor[signals_read] = atof(result);
 
       xml_go_up(xml_hdl);
       if(xml_goto_nth_element_inside(xml_hdl, "label", 0))
@@ -391,7 +391,11 @@ void UI_ViewMontagewindow::SelectButtonClicked()
       }
       strlcpy(label, result, 256);
 
-      snprintf(composition_txt + strlen(composition_txt), 2048 - strlen(composition_txt), "%+ix %s", factor[signals_read], label);
+      snprintf(str3, 64, "%+f", factor[signals_read]);
+
+      remove_trailing_zeros(str3);
+
+      snprintf(composition_txt + strlen(composition_txt), 2048 - strlen(composition_txt), "%sx %s", str3, label);
 
       remove_trailing_spaces(composition_txt);
 

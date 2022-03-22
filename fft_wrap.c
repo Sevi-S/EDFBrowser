@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2018 - 2019 Teunis van Beelen
+* Copyright (C) 2018 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -31,6 +30,7 @@
 
 static void window_func(const double *, double *, double *, int, int, int);
 static void set_gain_unity(double *, int);
+static double bessi0(double);
 
 
 struct fft_wrap_settings_struct * fft_wrap_create(double *buf, int buf_size, int dft_size, int window_type, int overlap)
@@ -41,7 +41,7 @@ struct fft_wrap_settings_struct * fft_wrap_create(double *buf, int buf_size, int
   if(buf_size < 4)  return NULL;
   if(dft_size < 4)  return NULL;
   if(dft_size & 1)  dft_size--;
-  if((window_type < 0) || (window_type > 7))  return NULL;
+  if((window_type < 0) || (window_type > 12))  return NULL;
   if((overlap < 1) || (overlap > 5))  return NULL;
 
   st = (struct fft_wrap_settings_struct *)calloc(1, sizeof(struct fft_wrap_settings_struct));
@@ -291,13 +291,49 @@ static void window_func(const double *src, double *dest, double *coef, int sz, i
                     - (0.324954578e-2 * cos((14.0 * M_PI * i) / (sz - 1))) + (0.13801040e-3 * cos((16.0 * M_PI * i) / (sz - 1))) - (0.132725e-5 * cos((18.0 * M_PI * i) / (sz - 1)));  /* 9-term HFT223D */
                   }
                 }
-                else
-                {
-                  for(i=0; i<sz2; i++)
-                  {
-                    coef[i] = 0;
+                else if(type == FFT_WNDW_TYPE_HFT95)
+                  {  /* Spectrum and spectral density estimation by the Discrete Fourier transform (DFT), including a comprehensive list of window functions and some new at-top windows Max Planck Institute */
+                    for(i=0; i<sz2; i++)
+                    {
+                      coef[i] = 1.0 - (1.9383379 * cos((2.0 * M_PI * i) / (sz - 1))) + (1.3045202 * cos((4.0 * M_PI * i) / (sz - 1)))
+                      - (0.4028270 * cos((6.0 * M_PI * i) / (sz - 1))) + (0.0350665 * cos((8.0 * M_PI * i) / (sz - 1)));
+                    }
                   }
-                }
+                  else if(type == FFT_WNDW_TYPE_KAISER_A2)
+                    {  /* Spectrum and spectral density estimation by the Discrete Fourier transform (DFT), including a comprehensive list of window functions and some new at-top windows Max Planck Institute */
+                      for(i=0; i<sz2; i++)
+                      {
+                        coef[i] = (bessi0(M_PI * 2.0 * sqrt(1.0 - ((((2.0 * i) / (double)sz) - 1.0) * (((2.0 * i) / (double)sz) - 1.0))))) / (bessi0(M_PI * 2.0));
+                      }
+                    }
+                    else if(type == FFT_WNDW_TYPE_KAISER_A3)
+                      {  /* Spectrum and spectral density estimation by the Discrete Fourier transform (DFT), including a comprehensive list of window functions and some new at-top windows Max Planck Institute */
+                        for(i=0; i<sz2; i++)
+                        {
+                          coef[i] = (bessi0(M_PI * 3.0 * sqrt(1.0 - ((((2.0 * i) / (double)sz) - 1.0) * (((2.0 * i) / (double)sz) - 1.0))))) / (bessi0(M_PI * 3.0));
+                        }
+                      }
+                      else if(type == FFT_WNDW_TYPE_KAISER_A4)
+                        {  /* Spectrum and spectral density estimation by the Discrete Fourier transform (DFT), including a comprehensive list of window functions and some new at-top windows Max Planck Institute */
+                          for(i=0; i<sz2; i++)
+                          {
+                            coef[i] = (bessi0(M_PI * 4.0 * sqrt(1.0 - ((((2.0 * i) / (double)sz) - 1.0) * (((2.0 * i) / (double)sz) - 1.0))))) / (bessi0(M_PI * 4.0));
+                          }
+                        }
+                        else if(type == FFT_WNDW_TYPE_KAISER_A5)
+                          {  /* Spectrum and spectral density estimation by the Discrete Fourier transform (DFT), including a comprehensive list of window functions and some new at-top windows Max Planck Institute */
+                            for(i=0; i<sz2; i++)
+                            {
+                              coef[i] = (bessi0(M_PI * 5.0 * sqrt(1.0 - ((((2.0 * i) / (double)sz) - 1.0) * (((2.0 * i) / (double)sz) - 1.0))))) / (bessi0(M_PI * 5.0));
+                            }
+                          }
+                          else
+                          {
+                            for(i=0; i<sz2; i++)
+                            {
+                              coef[i] = 0;
+                            }
+                          }
 
     set_gain_unity(coef, sz2);
   }
@@ -335,6 +371,48 @@ static void set_gain_unity(double *arr, int sz)
   }
 }
 
+
+/*
+ * zero order, first kind, modified Bessel function
+ * http://jean-pierre.moreau.pagesperso-orange.fr/c_bessel.html
+ */
+static double bessi0(double x)
+{
+  double y,p1,p2,p3,p4,p5,p6,p7,q1,q2,q3,q4,q5,q6,q7,q8,q9,ax,bx;
+
+  p1=1.0;
+  p2=3.5156229;
+  p3=3.0899424;
+  p4=1.2067492;
+  p5=0.2659732;
+  p6=0.360768e-1;
+  p7=0.45813e-2;
+  q1=0.39894228;
+  q2=0.1328592e-1;
+  q3=0.225319e-2;
+  q4=-0.157565e-2;
+  q5=0.916281e-2;
+  q6=-0.2057706e-1;
+  q7=0.2635537e-1;
+  q8=-0.1647633e-1;
+  q9=0.392377e-2;
+
+  if(fabs(x) < 3.75)
+  {
+    y = (x / 3.75) * (x / 3.75);
+
+    return(p1 + y * (p2 + y * (p3 + y * (p4 + y * (p5 + y * (p6 + y * p7))))));
+  }
+  else
+  {
+    ax = fabs(x);
+    y = 3.75 / ax;
+    bx = exp(ax) / sqrt(ax);
+    ax = q1 + y * (q2 + y * (q3 + y * (q4 + y * (q5 + y * (q6 + y * (q7 + y * (q8 + y * q9)))))));
+
+    return(ax * bx);
+  }
+}
 
 
 

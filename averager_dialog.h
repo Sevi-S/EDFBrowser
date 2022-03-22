@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2011 - 2019 Teunis van Beelen
+* Copyright (C) 2011 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -47,6 +46,7 @@
 #include <QTime>
 #include <QTimeEdit>
 #include <QSpinBox>
+#include <QToolTip>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,7 +69,7 @@ class UI_AveragerWindow : public QObject
   Q_OBJECT
 
 public:
-  UI_AveragerWindow(QWidget *, int, int);
+  UI_AveragerWindow(QWidget *, int, struct edfhdrblock *);
 
   ~UI_AveragerWindow();
 
@@ -101,14 +101,17 @@ QTimeEdit    *timeEdit1,
 QTime        time1,
              time2;
 
-QSpinBox *avg_periodspinbox;
+QSpinBox *avg_periodspinbox,
+         *day_spinbox1,
+         *day_spinbox2;
 
 char annot_str[MAX_ANNOTATION_LEN + 1];
 
-int signal_nr,
-    file_num;
+int signal_nr;
 
 double *avgbuf;
+
+struct edfhdrblock *edf_hdr;
 
 
 void process_avg(struct signalcompblock *);

@@ -34,6 +34,7 @@ CONFIG += static
 CONFIG += largefile
 CONFIG += appbundle
 QT += network
+QT += gui
 
 contains(QT_MAJOR_VERSION, 5) {
 QT += widgets
@@ -41,8 +42,6 @@ QT += printsupport
 
 win32 {
     QTPLUGIN += windowsprintersupport
-} else:mac {
-    QTPLUGIN += cocoaprintersupport
 }
 }
 
@@ -52,6 +51,10 @@ MOC_DIR = ./moc
 HEADERS += global.h
 HEADERS += mainwindow.h
 HEADERS += viewcurve.h
+HEADERS += import_gyrodata.h
+HEADERS += sync_manager.h
+HEADERS += startGyroAnalysis.h
+HEADERS += createGraphs.h
 HEADERS += check_edf_file.h
 HEADERS += show_edf_hdr.h
 HEADERS += signals_dialog.h
@@ -110,6 +113,7 @@ HEADERS += mortara2edf.h
 HEADERS += averager_dialog.h
 HEADERS += averager_curve_wnd.h
 HEADERS += ecg_filter.h
+HEADERS += pt_qrs.h
 HEADERS += ecg_export.h
 HEADERS += statistics_dialog.h
 HEADERS += filteredblockread.h
@@ -135,11 +139,13 @@ HEADERS += fft_wrap.h
 HEADERS += ecg_statistics.h
 HEADERS += fir_filter.h
 HEADERS += fir_filter_dialog.h
-
-HEADERS += hilbertDock.h
-HEADERS += import_Data.h
-HEADERS += sync_manager.h
-HEADERS += createGraphs.h
+HEADERS += ishne2edf.h
+HEADERS += cdsa_dialog.h
+HEADERS += cdsa_dock.h
+HEADERS += hypnogram_dialog.h
+HEADERS += hypnogram_dock.h
+HEADERS += run_qrs_detector.h
+HEADERS += hrv_dock.h
 
 HEADERS += third_party/fidlib/fidlib.h
 HEADERS += third_party/fidlib/fidmkf.h
@@ -149,16 +155,13 @@ HEADERS += third_party/kiss_fft/kiss_fft.h
 HEADERS += third_party/kiss_fft/_kiss_fft_guts.h
 HEADERS += third_party/kiss_fft/kiss_fftr.h
 
-HEADERS += third_party/smarc/filtering.h
-HEADERS += third_party/smarc/multi_stage.h
-HEADERS += third_party/smarc/polyfilt.h
-HEADERS += third_party/smarc/smarc.h
-HEADERS += third_party/smarc/stage_impl.h
-HEADERS += third_party/smarc/remez_lp.h
-
 SOURCES += main.cpp
 SOURCES += mainwindow_constr.cpp
 SOURCES += mainwindow.cpp
+SOURCES += import_gyrodata.cpp
+SOURCES += startGyroAnalysis.cpp
+SOURCES += sync_manager.cpp
+SOURCES += createGraphs.cpp
 SOURCES += viewbuf.cpp
 SOURCES += videoplayer.cpp
 SOURCES += read_write_settings.cpp
@@ -221,6 +224,7 @@ SOURCES += mortara2edf.cpp
 SOURCES += averager_dialog.cpp
 SOURCES += averager_curve_wnd.cpp
 SOURCES += ecg_filter.c
+SOURCES += pt_qrs.c
 SOURCES += ecg_export.cpp
 SOURCES += statistics_dialog.cpp
 SOURCES += filteredblockread.cpp
@@ -246,23 +250,18 @@ SOURCES += fft_wrap.c
 SOURCES += ecg_statistics.c
 SOURCES += fir_filter.c
 SOURCES += fir_filter_dialog.cpp
-
-SOURCES += hilbertDock.cpp
-SOURCES += import_Data.cpp
-SOURCES += sync_manager.cpp
-SOURCES += createGraphs.cpp
+SOURCES += ishne2edf.cpp
+SOURCES += cdsa_dialog.cpp
+SOURCES += cdsa_dock.cpp
+SOURCES += hypnogram_dialog.cpp
+SOURCES += hypnogram_dock.cpp
+SOURCES += run_qrs_detector.cpp
+SOURCES += hrv_dock.cpp
 
 SOURCES += third_party/fidlib/fidlib.c
 
 SOURCES += third_party/kiss_fft/kiss_fft.c
-SOURCES += third_party/kiss_fft/kiss_fftr.c
-
-SOURCES += third_party/smarc/filtering.c
-SOURCES += third_party/smarc/multi_stage.c
-SOURCES += third_party/smarc/polyfilt.c
-SOURCES += third_party/smarc/smarc.c
-SOURCES += third_party/smarc/stage_impl.c
-SOURCES += third_party/smarc/remez_lp.c
+SOURCES += third_party/kiss_fft/kiss_fftr.c\
 
 
 RESOURCES = images.qrc
@@ -271,7 +270,8 @@ win32 {
  RC_FILE = edfbrowser.rc
 }
 
-QMAKE_CXXFLAGS += -Wextra -Wshadow -Wformat-nonliteral -Wformat-security -Wtype-limits -Wfatal-errors
+QMAKE_CXXFLAGS += -Wextra -Wshadow -Wformat-nonliteral -Wformat-security -Wtype-limits -Wfatal-errors -Wdeprecated-declarations
+
 
 unix {
 target.path = /usr/bin
@@ -307,10 +307,16 @@ mime.files += install/edfbrowser.xml
 INSTALLS += mime
 }
 
-
-
-
-
-
-
-
+mac {
+ TARGET = EDFbrowser
+ QMAKE_BUNDLE = EDFbrowser
+ QMAKE_APPLICATION_BUNDLE_NAME = EDFbrowser
+ QMAKE_TARGET_BUNDLE_PREFIX = net.teuniz
+ icns.target = edf.icns
+ icns.commands = /usr/bin/env bash $$_PRO_FILE_PWD_/images/macos-icns-create.command "$$(PWD)"
+ QMAKE_EXTRA_TARGETS += icns
+ ICON = $$(PWD)/edf.icns
+ QMAKE_POST_LINK = /usr/bin/env bash $$_PRO_FILE_PWD_/install/macos-dmg-create.command "$$(PWD)"
+ QMAKE_CLEAN += edf.iconset EDFbrowser-*-temp.dmg
+ QMAKE_DISTCLEAN += edf.icns EDFbrowser-*.dmg
+}

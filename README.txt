@@ -1,5 +1,5 @@
 Source code for the Bachlor Thesis of Severi Julius Suonenlahti at Maastricht Science Program, 2020
-This version (Fork) of the project is used for tremor analysis, so you can compare gyroscopic and EMG .edf files
+This version of the project is used for tremor analysis, so you can compare gyroscopic and EMG .edf files
 
 The orignal source code is available at https://gitlab.com/Teuniz/EDFbrowser
 Requirements

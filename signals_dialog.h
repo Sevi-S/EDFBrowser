@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2007 - 2019 Teunis van Beelen
+* Copyright (C) 2007 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -39,6 +38,8 @@
 #include <QDialog>
 #include <QLabel>
 #include <QPushButton>
+#include <QTableWidget>
+#include <QTableWidgetItem>
 #include <QListWidget>
 #include <QListWidgetItem>
 #include <QList>
@@ -46,6 +47,9 @@
 #include <QMessageBox>
 #include <QVariant>
 #include <QString>
+#include <QSpinBox>
+#include <QDoubleSpinBox>
+#include <QStringList>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,6 +61,7 @@
 #include "utc_date_time.h"
 #include "special_button.h"
 #include "utils.h"
+#include "cdsa_dialog.h"
 
 
 
@@ -79,8 +84,9 @@ private:
   QDialog      *SignalsDialog;
 
   QListWidget  *filelist,
-               *signallist,
-               *compositionlist;
+               *signallist;
+
+  QTableWidget *compositionlist;
 
   QLabel       *label1,
                *label2,
@@ -102,13 +108,18 @@ private:
   SpecialButton *ColorButton;
 
   int smp_per_record,
-      curve_color;
+      curve_color,
+      default_color_list[32],
+      default_color_idx,
+      color_selected;
 
   char physdimension[64];
 
   double bitvalue;
 
   void strip_types_from_label(char *);
+
+  void AddSubtractButtonsClicked(int);
 
  private slots:
 

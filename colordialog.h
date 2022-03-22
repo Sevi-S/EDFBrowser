@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2007 - 2019 Teunis van Beelen
+* Copyright (C) 2007 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -56,15 +55,18 @@ class UI_ColorMenuDialog : public QObject
 
 public:
 
-  UI_ColorMenuDialog(int *oldColor, QWidget *parent = NULL);
+  UI_ColorMenuDialog(int *oldColor, QWidget *parent, int show_var_color_button=0);
 
 private:
 
 int *color;
 
+int show_var_colors;
+
 QDialog      *colormenu_dialog;
 
-QPushButton  *CloseButton;
+QPushButton  *CloseButton,
+             *varyColorButton;
 
 SpecialButton *ColorButton1,
               *ColorButton2,
@@ -81,8 +83,7 @@ SpecialButton *ColorButton1,
               *ColorButton13,
               *ColorButton14,
               *ColorButton15,
-              *ColorButton16,
-              *parentbutton;
+              *ColorButton16;
 
 
 private slots:
@@ -103,6 +104,7 @@ void ColorButton13_pressed(SpecialButton *);
 void ColorButton14_pressed(SpecialButton *);
 void ColorButton15_pressed(SpecialButton *);
 void ColorButton16_pressed(SpecialButton *);
+void varyColorButtonClicked();
 
 };
 

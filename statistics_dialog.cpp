@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2011 - 2019 Teunis van Beelen
+* Copyright (C) 2011 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -136,7 +135,7 @@ UI_StatisticWindow::UI_StatisticWindow(struct signalcompblock *signalcomp,
     if(job_src == STAT_JOB_SRC_ANNOT)
     {
       strlcpy(stat_str, "Distribution ", 2048);
-      strlcat(stat_str, annot->annotation, 2048);
+      strlcat(stat_str, annot->description, 2048);
       curve1->setUpperLabel1(stat_str);
     }
     else
@@ -280,7 +279,7 @@ UI_StatisticWindow::UI_StatisticWindow(struct signalcompblock *signalcomp,
 
         if(tmp_annot == NULL)  break;
 
-        if(!strcmp(tmp_annot->annotation, annot->annotation))
+        if(!strcmp(tmp_annot->description, annot->description))
         {
           if(beat_cnt)
           {
@@ -499,13 +498,7 @@ UI_StatisticWindow::UI_StatisticWindow(struct signalcompblock *signalcomp,
   {
     free(beat_interval_list);
 
-    strlcpy(mainwindow->toolbar_stats.annot_label, annot->annotation, MAX_ANNOTATION_LEN + 1);
-
-    mainwindow->toolbar_stats.annot_list = annot_list;
-
-    mainwindow->toolbar_stats.sz = 0;
-
-    mainwindow->toolbar_stats.active = 1;
+    mainwindow->enable_hrv_stats_toolbar(annot->description, annot_list);
   }
 
   Label1->setText(stat_str);

@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2011 - 2019 Teunis van Beelen
+* Copyright (C) 2011 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -32,7 +31,7 @@
 
 
 
-UI_AveragerWindow::UI_AveragerWindow(QWidget *w_parent, int annot_nr, int file_n)
+UI_AveragerWindow::UI_AveragerWindow(QWidget *w_parent, int annot_nr, struct edfhdrblock *e_hdr)
 {
   int i;
 
@@ -42,7 +41,7 @@ UI_AveragerWindow::UI_AveragerWindow(QWidget *w_parent, int annot_nr, int file_n
 
   mainwindow = (UI_Mainwindow *)w_parent;
 
-  file_num = file_n;
+  edf_hdr = e_hdr;
 
   averager_dialog = new QDialog(w_parent);
 
@@ -70,29 +69,38 @@ UI_AveragerWindow::UI_AveragerWindow(QWidget *w_parent, int annot_nr, int file_n
 
   time1.setHMS(0, 0, 0, 0);
 
-  recording_duration = (mainwindow->edfheaderlist[file_num]->datarecords * mainwindow->edfheaderlist[file_num]->long_data_record_duration) / TIME_DIMENSION;
+  recording_duration = (edf_hdr->datarecords * edf_hdr->long_data_record_duration) / TIME_DIMENSION;
 
   time2.setHMS((recording_duration / 3600) % 24, (recording_duration % 3600) / 60, recording_duration % 60, 0);
 
   time1Label = new QLabel(averager_dialog);
-  time1Label->setGeometry(20, 65, 100, 25);
-  time1Label->setText("From (hh:mm:ss)");
+  time1Label->setGeometry(20, 55, 130, 50);
+  time1Label->setText("From\n(d:hh:mm:ss.mmm)");
+
+  day_spinbox1 = new QSpinBox(averager_dialog);
+  day_spinbox1->setGeometry(160, 65, 35, 25);
+  day_spinbox1->setRange(0, 9);
+  day_spinbox1->setToolTip("Days (24-hour units)");
 
   timeEdit1 = new QTimeEdit(averager_dialog);
-  timeEdit1->setGeometry(130, 65, 110, 25);
+  timeEdit1->setGeometry(200, 65, 110, 25);
   timeEdit1->setDisplayFormat("hh:mm:ss.zzz");
   timeEdit1->setMinimumTime(QTime(0, 0, 0, 0));
-  timeEdit1->setMaximumTime(time2);
 
   time2Label = new QLabel(averager_dialog);
-  time2Label->setGeometry(20, 110, 100, 25);
-  time2Label->setText("To (hh:mm:ss)");
+  time2Label->setGeometry(20, 100, 130, 50);
+  time2Label->setText("To\n(d:hh:mm:ss.mmm)");
+
+  day_spinbox2 = new QSpinBox(averager_dialog);
+  day_spinbox2->setGeometry(160, 110, 35, 25);
+  day_spinbox2->setRange(0, 9);
+  day_spinbox2->setToolTip("Days (24-hour units)");
+  day_spinbox2->setValue((int)(recording_duration / (86400)));
 
   timeEdit2 = new QTimeEdit(averager_dialog);
-  timeEdit2->setGeometry(130, 110, 110, 25);
+  timeEdit2->setGeometry(200, 110, 110, 25);
   timeEdit2->setDisplayFormat("hh:mm:ss.zzz");
   timeEdit2->setMinimumTime(QTime(0, 0, 0, 0));
-  timeEdit2->setMaximumTime(time2);
   timeEdit2->setTime(time2);
 
   ratioLabel = new QLabel(averager_dialog);
@@ -140,9 +148,9 @@ UI_AveragerWindow::UI_AveragerWindow(QWidget *w_parent, int annot_nr, int file_n
 
   list->setCurrentRow(0, QItemSelectionModel::Select);
 
-  annot_ptr = edfplus_annotation_get_item_visible_only(&mainwindow->edfheaderlist[file_num]->annot_list, annot_nr);
+  annot_ptr = edfplus_annotation_get_item_visible_only(&(edf_hdr->annot_list), annot_nr);
 
-  strlcpy(annot_str, annot_ptr->annotation, MAX_ANNOTATION_LEN + 1);
+  strlcpy(annot_str, annot_ptr->description, MAX_ANNOTATION_LEN + 1);
   remove_leading_spaces(annot_str);
   remove_trailing_spaces(annot_str);
 
@@ -207,15 +215,15 @@ void UI_AveragerWindow::startButtonClicked()
   time1 = timeEdit1->time();
   time2 = timeEdit2->time();
 
-  if(time2.operator<=(time1) == true)
+  l_time1 = (((time1.hour() * 3600) + (time1.minute() * 60) + (time1.second())) * TIME_DIMENSION) + (time1.msec() * TIME_DIMENSION / 1000LL) + (day_spinbox1->value() * 86400LL * TIME_DIMENSION);
+  l_time2 = (((time2.hour() * 3600) + (time2.minute() * 60) + (time2.second())) * TIME_DIMENSION) + (time2.msec() * TIME_DIMENSION / 1000LL) + (day_spinbox2->value() * 86400LL * TIME_DIMENSION);
+
+  if(l_time1 >= l_time2)
   {
-    QMessageBox messagewindow(QMessageBox::Critical, "Error", "Starttime is higher or equal to stoptime.");
+    QMessageBox messagewindow(QMessageBox::Critical, "Error", "Start time is higher or equal to stop time.");
     messagewindow.exec();
     return;
   }
-
-  l_time1 = (((time1.hour() * 3600) + (time1.minute() * 60) + (time1.second())) * TIME_DIMENSION) + (time1.msec() * TIME_DIMENSION / 1000LL);
-  l_time2 = (((time2.hour() * 3600) + (time2.minute() * 60) + (time2.second())) * TIME_DIMENSION) + (time2.msec() * TIME_DIMENSION / 1000LL);
 
   n = ratioBox->currentIndex();
 
@@ -229,7 +237,7 @@ void UI_AveragerWindow::startButtonClicked()
             break;
   }
 
-  backup_viewtime = mainwindow->edfheaderlist[file_num]->viewtime;
+  backup_viewtime = edf_hdr->viewtime;
 
   backup_timescale = mainwindow->pagetime;
 
@@ -239,18 +247,18 @@ void UI_AveragerWindow::startButtonClicked()
 
   mainwindow->signal_averaging_active = 1;
 
-  n = edfplus_annotation_size(&mainwindow->edfheaderlist[file_num]->annot_list);
+  n = edfplus_annotation_size(&(edf_hdr->annot_list));
 
   avg_cnt = 0;
 
   for(i=0; i<n; i++)
   {
-    annot_ptr = edfplus_annotation_get_item(&mainwindow->edfheaderlist[file_num]->annot_list, i);
+    annot_ptr = edfplus_annotation_get_item(&(edf_hdr->annot_list), i);
 
-    if(((annot_ptr->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) >= l_time1)
-      && ((annot_ptr->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) <= l_time2))
+    if(((annot_ptr->onset - edf_hdr->starttime_offset) >= l_time1)
+      && ((annot_ptr->onset - edf_hdr->starttime_offset) <= l_time2))
     {
-      strlcpy(str, annot_ptr->annotation, MAX_ANNOTATION_LEN + 1);
+      strlcpy(str, annot_ptr->description, MAX_ANNOTATION_LEN + 1);
 
       remove_leading_spaces(str);
       remove_trailing_spaces(str);
@@ -290,7 +298,7 @@ void UI_AveragerWindow::startButtonClicked()
       QMessageBox messagewindow(QMessageBox::Critical, "Error", "Too many \"Average\" windows are open.\nClose some first.");
       messagewindow.exec();
 
-      mainwindow->edfheaderlist[file_num]->viewtime = backup_viewtime;
+      edf_hdr->viewtime = backup_viewtime;
       mainwindow->pagetime = backup_timescale;
       mainwindow->signal_averaging_active = 0;
       mainwindow->setup_viewbuf();
@@ -305,7 +313,7 @@ void UI_AveragerWindow::startButtonClicked()
       QMessageBox messagewindow(QMessageBox::Critical, "Error", "Too many samples in buf.");
       messagewindow.exec();
 
-      mainwindow->edfheaderlist[file_num]->viewtime = backup_viewtime;
+      edf_hdr->viewtime = backup_viewtime;
       mainwindow->pagetime = backup_timescale;
       mainwindow->signal_averaging_active = 0;
       mainwindow->setup_viewbuf();
@@ -321,7 +329,7 @@ void UI_AveragerWindow::startButtonClicked()
       QMessageBox messagewindow(QMessageBox::Critical, "Error", "The system was not able to provide enough resources (memory) to perform the requested action.");
       messagewindow.exec();
 
-      mainwindow->edfheaderlist[file_num]->viewtime = backup_viewtime;
+      edf_hdr->viewtime = backup_viewtime;
       mainwindow->pagetime = backup_timescale;
       mainwindow->signal_averaging_active = 0;
       mainwindow->setup_viewbuf();
@@ -329,23 +337,23 @@ void UI_AveragerWindow::startButtonClicked()
       return;
     }
 
-    n = edfplus_annotation_size(&mainwindow->edfheaderlist[file_num]->annot_list);
+    n = edfplus_annotation_size(&(edf_hdr->annot_list));
 
     avg_cnt = 0;
 
     for(i=0; i<n; i++)
     {
-      annot_ptr = edfplus_annotation_get_item(&mainwindow->edfheaderlist[file_num]->annot_list, i);
+      annot_ptr = edfplus_annotation_get_item(&(edf_hdr->annot_list), i);
 
       if(annot_ptr->hided_in_list)
       {
         continue;
       }
 
-      if(((annot_ptr->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) >= l_time1)
-        && ((annot_ptr->onset - mainwindow->edfheaderlist[file_num]->starttime_offset) <= l_time2))
+      if(((annot_ptr->onset - edf_hdr->starttime_offset) >= l_time1)
+        && ((annot_ptr->onset - edf_hdr->starttime_offset) <= l_time2))
       {
-        strlcpy(str, annot_ptr->annotation, MAX_ANNOTATION_LEN + 1);
+        strlcpy(str, annot_ptr->description, MAX_ANNOTATION_LEN + 1);
 
         remove_leading_spaces(str);
         remove_trailing_spaces(str);
@@ -362,7 +370,7 @@ void UI_AveragerWindow::startButtonClicked()
             {
               free(avgbuf);
 
-              mainwindow->edfheaderlist[file_num]->viewtime = backup_viewtime;
+              edf_hdr->viewtime = backup_viewtime;
 
               mainwindow->pagetime = backup_timescale;
 
@@ -374,11 +382,11 @@ void UI_AveragerWindow::startButtonClicked()
             }
           }
 
-          mainwindow->edfheaderlist[file_num]->viewtime = annot_ptr->onset;
+          edf_hdr->viewtime = annot_ptr->onset;
 
-          mainwindow->edfheaderlist[file_num]->viewtime -= mainwindow->edfheaderlist[file_num]->starttime_offset;
+          edf_hdr->viewtime -= edf_hdr->starttime_offset;
 
-          mainwindow->edfheaderlist[file_num]->viewtime -= (mainwindow->pagetime / trigger_position_ratio);
+          edf_hdr->viewtime -= (mainwindow->pagetime / trigger_position_ratio);
 
           mainwindow->setup_viewbuf();
 
@@ -405,7 +413,7 @@ void UI_AveragerWindow::startButtonClicked()
 
       free(avgbuf);
 
-      mainwindow->edfheaderlist[file_num]->viewtime = backup_viewtime;
+      edf_hdr->viewtime = backup_viewtime;
 
       mainwindow->pagetime = backup_timescale;
 
@@ -456,7 +464,7 @@ void UI_AveragerWindow::startButtonClicked()
     }
   }
 
-  mainwindow->edfheaderlist[file_num]->viewtime = backup_viewtime;
+  edf_hdr->viewtime = backup_viewtime;
 
   mainwindow->pagetime = backup_timescale;
 
@@ -618,7 +626,7 @@ void UI_AveragerWindow::process_avg(struct signalcompblock *signalcomp)
     {
       if(s==signalcomp->sample_start)
       {
-        if(mainwindow->edfheaderlist[signalcomp->filenum]->viewtime<=0)
+        if(signalcomp->edfhdr->viewtime<=0)
         {
           plif_reset_subtract_filter(signalcomp->plif_ecg_filter, 0);
         }

@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2007 - 2019 Teunis van Beelen
+* Copyright (C) 2007 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -470,7 +469,7 @@ static int xml_attribute(const char *data, const char *item, char *result, int r
   }
 
 #ifdef XMLDEBUG_TEST
-  printf("XML: error at line: %i\n", __LINE__);
+  printf("XML: XML_ERROR_NOTFOUND at line: %i\n", __LINE__);
 #endif
   return XML_ERROR_NOTFOUND;
 }
@@ -774,7 +773,7 @@ int xml_goto_nth_element_inside(struct xml_handle *handle_p, const char *name, i
         else
         {
 #ifdef XMLDEBUG_TEST
-          printf("XML: error at line: %i\n", __LINE__);
+          printf("XML: XML_ERROR_NOTFOUND at line: %i\n", __LINE__);
 #endif
           return XML_ERROR_NOTFOUND;
         }

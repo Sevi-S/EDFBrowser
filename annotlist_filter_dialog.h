@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2017 - 2019 Teunis van Beelen
+* Copyright (C) 2017 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -67,7 +66,7 @@ class UI_AnnotFilterWindow : public QObject
   Q_OBJECT
 
 public:
-  UI_AnnotFilterWindow(QWidget *, struct annotationblock *, struct annot_filter_struct *, int);
+  UI_AnnotFilterWindow(QWidget *, struct annotationblock *, struct annot_filter_struct *, struct edfhdrblock *);
 
   UI_Mainwindow *mainwindow;
 
@@ -94,7 +93,7 @@ QCheckBox *hide_in_list_checkbox,
           *hide_other_checkbox,
           *invert_checkbox;
 
-int file_num;
+struct edfhdrblock *edf_hdr;
 
 char sel_annot_str[MAX_ANNOTATION_LEN + 1];
 

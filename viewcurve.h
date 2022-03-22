@@ -3,7 +3,7 @@
 *
 * Author: Teunis van Beelen
 *
-* Copyright (C) 2007 - 2019 Teunis van Beelen
+* Copyright (C) 2007 - 2020 Teunis van Beelen
 *
 * Email: teuniz@protonmail.com
 *
@@ -11,8 +11,7 @@
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
+* the Free Software Foundation, version 3 of the License.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -30,6 +29,7 @@
 #ifndef VIEWCURVE_H
 #define VIEWCURVE_H
 
+#include <QObject>
 #include <QtGlobal>
 #include <QWidget>
 #include <QPainter>
@@ -52,6 +52,12 @@
 #include <QMessageBox>
 #include <QString>
 #include <QThread>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QUrl>
+#include <QList>
+#include <QShortcut>
+#include <QKeySequence>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,6 +78,8 @@
 #include "statistics_dialog.h"
 #include "z_score_dialog.h"
 #include "z_ratio_filter.h"
+#include "cdsa_dialog.h"
+#include "run_qrs_detector.h"
 
 #include "third_party/fidlib/fidlib.h"
 
@@ -131,11 +139,6 @@ public:
 
   UI_Mainwindow *mainwindow;
 
-    QDialog     *sidemenu;
-   QPushButton *sidemenuButton2;
-
-    //QDialog     *sidemenu;
-
   int use_move_events,
       panning_moving,
       mouse_x,
@@ -187,6 +190,7 @@ public:
          text_color,
          annot_marker_color,
          annot_duration_color,
+         annot_duration_color_selected,
          backup_color_1,
          backup_color_2,
          backup_color_3,
@@ -197,17 +201,20 @@ public:
 
   QFont *printfont;
 
+  QShortcut *shift_page_left_shortcut,
+            *shift_page_right_shortcut,
+            *shift_page_up_shortcut,
+            *shift_page_down_shortcut;
+
   void drawCurve_stage_1(QPainter *painter=NULL, int w_width=0, int w_height=0, int print_linewidth=0);
   void setCrosshair_1_center(void);
+  void arrowkeys_shortcuts_global_set_enabled(bool);
 
+    QPushButton *sidemenuButton2;
 
 public slots:
 
   void exec_sidemenu(int);
-    void CrosshairButton();
-    void signalInvert();
-    void sidemenu_close();
-
 #if QT_VERSION < 0x050000
   void print_to_postscript();
 #endif
@@ -216,12 +223,12 @@ public slots:
   void print_to_printer();
   void next_crosshair_triggered();
 
+
 private:
 
- // QDialog     *sidemenu;  made public by sevi
+  QDialog     *sidemenu;
 
   QPushButton *sidemenuButton1,
-           //   *sidemenuButton2,
               *sidemenuButton3,
               *sidemenuButton4,
               *sidemenuButton5,
@@ -232,7 +239,9 @@ private:
               *sidemenuButton10,
               *sidemenuButton11,
               *sidemenuButton12,
-              *sidemenuButton13;
+              *sidemenuButton13,
+              *sidemenuButton14,
+              *sidemenuButton15;
 
   QDoubleSpinBox *ScaleBox,
                  *ScaleBox2;
@@ -267,6 +276,9 @@ private:
   void backup_colors_for_printing(void);
   void restore_colors_after_printing(void);
 
+public slots:
+    void CrosshairButton();
+
 protected slots:
 
   void RulerButton();
@@ -276,15 +288,17 @@ protected slots:
   void RemovefilterButton();
   void RemovesignalButton();
   void ColorButton();
-  //void CrosshairButton();
+ // void CrosshairButton();
   void FreqSpecButton();
   void Z_scoringButton();
   void AdjustFilterButton();
   void StatisticsButton();
   void ECGdetectButton();
- // void signalInvert();
+  void signalInvert();
   void strip_types_from_label(char *);
-  //void sidemenu_close();
+  void sidemenu_close();
+  void cdsa_button();
+  void QRSdetectButton();
 
 protected:
   void paintEvent(QPaintEvent *);
@@ -294,6 +308,12 @@ protected:
   void mouseReleaseEvent(QMouseEvent *);
   void mouseMoveEvent(QMouseEvent *);
   void wheelEvent(QWheelEvent *);
+  void dragEnterEvent(QDragEnterEvent *);
+  void dropEvent(QDropEvent *);
+
+signals:
+
+  void file_dropped(void);
 };
 
 
